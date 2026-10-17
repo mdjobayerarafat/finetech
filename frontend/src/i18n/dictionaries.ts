@@ -92,6 +92,139 @@ export const dictionaries = {
     "nav.rules": "Agent rules",
     "nav.audit": "Audit ledger",
     "nav.safety": "Safety events",
+    "nav.docs": "Docs",
+
+    // Docs page
+    "docs.eyebrow": "Documentation",
+    "docs.title": "FinTech Pioneers — product manual.",
+    "docs.subtitle":
+      "Every screen, every action, every guarantee. Read it once and you'll know exactly what the system is doing on your behalf.",
+    "docs.searchPh": "Filter by section…",
+    "docs.lastUpdated": "Last updated {date}",
+    "docs.tocTitle": "On this page",
+    "docs.copyLink": "Copy link",
+    "docs.copied": "Link copied",
+    "docs.empty": "No sections match that filter.",
+    "docs.cta.title": "Can't find what you need?",
+    "docs.cta.body":
+      "Drop a note in the assistant and we'll either walk you through it or extend this manual.",
+    "docs.cta.cta": "Open the assistant",
+    "docs.gs.eyebrow": "Step 1",
+    "docs.gs.title": "Getting started",
+    "docs.gs.body":
+      "Sign in, set your language, and the system drops you on the dashboard. Everything you do from then on is reactive: each action in the workspace updates a real ledger row, and a cross-page bus refreshes balances the instant money moves. There is no demo mock data — your seeded account is the only state, and your transactions are the only history.",
+    "docs.gs.step1.title": "Sign in",
+    "docs.gs.step1.body":
+      "Use the seeded customer or admin account. The first login sets the CSRF cookie that every later state-changing call expects.",
+    "docs.gs.step2.title": "Set your language",
+    "docs.gs.step2.body":
+      "The language toggle in the top-right corner switches every visible string — buttons, cards, toasts, assistant narrative, even the auto-translate fallback that fires when the model replies in the wrong language.",
+    "docs.gs.step3.title": "Read the dashboard",
+    "docs.gs.step3.body":
+      "Balances, top categories, anomalies, upcoming subscriptions, and a one-tap jump into each tool. The numbers move the moment you do anything elsewhere.",
+    "docs.gs.step4.title": "Make a real transfer",
+    "docs.gs.step4.body":
+      "Open Transfers, add a beneficial account if you haven't, type the request in plain English or Chinese, hit Parse, then Confirm. For low-risk (Green) transfers the balance drops immediately; for Yellow or Red, the system will ask for confirmation (and mock MFA on Red).",
+    "docs.acct.eyebrow": "Feature",
+    "docs.acct.title": "Accounts & ledger",
+    "docs.acct.body":
+      "Every transfer, every payment, every subscription renewal, every wealth move is recorded as a row in the transactions table. The Accounts page is the live view of that ledger: pick an account on the left, see its full transaction history on the right, and filter by category. Newest first, posted in fen (1/100 of a CNY), converted to yuan only for display.",
+    "docs.acct.feature1": "Multi-account support with separate available and reserved balances.",
+    "docs.acct.feature2": "Category filter chips (food, transport, shopping, subscription, transfer, income, wealth).",
+    "docs.acct.feature3": "Beneficial accounts directory — see below.",
+    "docs.acct.feature4": "Cost management — see Budgets.",
+    "docs.ba.eyebrow": "Feature",
+    "docs.ba.title": "Beneficial accounts",
+    "docs.ba.body":
+      "In real banking, a 'beneficial account' is the payee's own account — the destination, as opposed to the remitter. The directory is a persistent, searchable list of people and businesses you pay. Adding one here makes the new payee immediately resolvable by both the Transfers page and the Assistant when you say 'Pay Li Wei 200 yuan'.",
+    "docs.ba.f1": "Display name, phone tail (last 4), and a free-form bank hint like 'ICBC 招商银行 尾号 1234' — all optional beyond the name.",
+    "docs.ba.f2": "Live search by name, phone tail, or bank hint.",
+    "docs.ba.f3": "Verified flag flips on first use; the row stays in the directory whether or not you've paid it yet.",
+    "docs.ba.f4": "Removing a row doesn't touch past transactions — your history is immutable.",
+    "docs.xfer.eyebrow": "Feature",
+    "docs.xfer.title": "Transfers",
+    "docs.xfer.body":
+      "Three modes on the Transfers page: Pay (immediate, in-session), Schedule (a future job posts it), and Splits (split a bill into N participant shares). The natural-language parser on Pay reads both English and Chinese, extracts amount + recipient + memo + (optional) schedule, and routes the request through the security review before the money moves.",
+    "docs.xfer.tiers.title": "Risk tiers",
+    "docs.xfer.tiers.body":
+      "Every pay-now request gets a tier: Green (auto-execute, balance debited instantly), Yellow (you must confirm), Red (you must confirm + mock-MFA). The tier is shown in the preview card alongside the security flags. You can still confirm a Red transfer — the system will not block you, but it will make you reach for the mock MFA button first.",
+    "docs.xfer.schedule.title": "Scheduling",
+    "docs.xfer.schedule.body":
+      "If your request includes a day (e.g. 'tomorrow', 'next Monday', '周五'), the smart parser extracts the ISO timestamp and routes the action to the schedule endpoint. No money moves today; a row in the scheduled list shows the future post time. To post right now instead, leave the schedule empty and the system will use the pay-now path.",
+    "docs.xfer.splits.title": "Split bills",
+    "docs.xfer.splits.body":
+      "Create a split with a title, total, and N participants. The system calculates each share (rounded to the fen), then lets you mark each share paid one at a time. Marking paid writes a debit row per share and links it to the original bill.",
+    "docs.bg.eyebrow": "Feature",
+    "docs.bg.title": "Budgets (cost management)",
+    "docs.bg.body":
+      "Set a per-category monthly cap and the dashboard will surface live spent-vs-cap bars, breach callouts, and near-limit warnings. The spent value is computed from your posted transactions over the trailing 30 days, so a transfer landing visibly moves the bar the moment the bus ticks.",
+    "docs.bg.f1": "Caps are CNY per month, optionally scoped to a specific account (or all accounts).",
+    "docs.bg.f2": "Spent / utilization / remaining are recomputed on every bus tick — no manual refresh.",
+    "docs.bg.f3": "The Forecast page respects your caps by default, so what-if scenarios can answer 'if I spend X more, am I still under cap?'",
+    "docs.bg.f4": "Removals are immediate; no soft-delete. Your transaction history is not affected.",
+    "docs.sub.eyebrow": "Feature",
+    "docs.sub.title": "Subscriptions",
+    "docs.sub.body":
+      "The system lists every recurring charge it has seen on your accounts, with its next charge date and running monthly total. You can cancel a subscription (writes a stop-future-renewal flag, doesn't refund the past), set a reminder for a specific subscription, and the dashboard surfaces any new ones detected on the last 30 days of transactions.",
+    "docs.card.eyebrow": "Feature",
+    "docs.card.title": "Cards",
+    "docs.card.body":
+      "Every virtual card has a state: active, frozen, cancelled. The cards page lets you issue a new card, freeze an active one (blocks new charges but keeps history), or cancel a card outright. Each action writes an audit row and bumps the bus so the dashboard reflects the new state immediately.",
+    "docs.wl.eyebrow": "Feature",
+    "docs.wl.title": "Wealth",
+    "docs.wl.body":
+      "Wealth products are simulated. The system supports subscribe (move money from a funding account into a product), redeem (move back), and a portfolio view. The running NAV is rolled up from product-level daily returns, and the dashboard surfaces your total invested amount next to your liquid cash.",
+    "docs.fc.eyebrow": "Feature",
+    "docs.fc.title": "Forecast",
+    "docs.fc.body":
+      "Type a CNY amount, choose a category, and pick a horizon (this week, this month, this quarter). The system simulates the impact on your end-of-period balance, surfaces whether you can afford it, and shows how the answer changes if you also pay off an upcoming subscription or hit a budget cap. The verdict is colour-coded: green 'can', yellow 'tight', red 'cannot'.",
+    "docs.rc.eyebrow": "Feature",
+    "docs.rc.title": "Receipt",
+    "docs.rc.body":
+      "Drop a photo of a receipt, or paste a structured draft. The OCR + parser pulls out merchant, total, date, and category, then drafts a transaction that you can confirm. The drafted transaction goes through the same risk review as any other movement, and confirmation posts it to the ledger.",
+    "docs.vc.eyebrow": "Feature",
+    "docs.vc.title": "Voice",
+    "docs.vc.body":
+      "Hold the mic, speak in English or Chinese, the system transcribes, runs the same plan-then-confirm loop as chat, and shows the proposed action as a card. If the tier is Red, the mock-MFA prompt is in the same flow — no separate page.",
+    "docs.as.eyebrow": "Feature",
+    "docs.as.title": "Assistant (chat)",
+    "docs.as.body":
+      "The assistant is the front door for anything you don't want to click through. It runs the same planner as the dedicated pages (so 'Pay Li Wei 200' in chat is identical to the same request on /transfers), with a narration layer that explains what it's about to do, the tier, the fraud flags, and the next step. If the LLM replies in a language that doesn't match your preferred language, the auto-translate fallback rewrites its narrative without blocking the call.",
+    "docs.ad.eyebrow": "Admin",
+    "docs.ad.title": "Admin control center",
+    "docs.ad.body":
+      "The admin role unlocks a separate side of the workspace: an overview of all users and accounts, an audit ledger of every system action, a red-team playground for testing the agent's fraud and prompt-injection defences, an editable rule set, and a safety-events feed for any account that has been locked. The customer and admin experiences share a backend but never a session — switching role requires a fresh login.",
+    "docs.sf.eyebrow": "Safety",
+    "docs.sf.title": "Safety, MFA, and lockouts",
+    "docs.sf.body":
+      "Safety is layered: the assistant is gated by risk tier, every Red-tier action needs mock-MFA, the per-user safety lock is a hard stop on all write actions, and the audit ledger records every state-changing call. If a user's account is locked, the lock reason is recorded and shown in the admin safety feed; an admin can release it from there.",
+    "docs.faq.eyebrow": "Reference",
+    "docs.faq.title": "FAQ",
+    "docs.faq.q1": "Is this a real bank?",
+    "docs.faq.a1": "No. Everything is a simulation running on a single PostgreSQL instance. No real money moves and no real institution backs the balances.",
+    "docs.faq.q2": "Where is my data stored?",
+    "docs.faq.a2": "In the Postgres database your deployment is configured with. Audit rows are append-only; the audit ledger never updates or deletes past events.",
+    "docs.faq.q3": "Why does the assistant sometimes reply in the wrong language?",
+    "docs.faq.a3": "The LLM is bilingual but not perfectly aligned to your preferred language. If the reply language doesn't match your setting, the system runs an auto-translate fallback on the assistant's narrative within a 4-second budget; if the budget is exceeded, the original text is shown with a toast.",
+    "docs.faq.q4": "What happens if I double-click Confirm?",
+    "docs.faq.a4": "The transfer endpoint is idempotent. The second click sends the same idempotency key, and the system returns the original transfer row instead of debiting twice. You'll see a 'replay' toast.",
+    "docs.faq.q5": "Can I delete a transfer after it posts?",
+    "docs.faq.a5": "No. Posted transfers are immutable — the audit ledger is the source of truth. If the transfer was wrong, the supported correction is a new compensating transfer.",
+    "docs.faq.q6": "What does 'beneficial account' actually mean?",
+    "docs.faq.a6": "It's the payee's account — the destination, as opposed to the remitter. Real banks use the term to distinguish 'who owns the money that just landed in this account' from 'whose account did it land in.'",
+    "docs.gloss.eyebrow": "Reference",
+    "docs.gloss.title": "Glossary",
+    "docs.gloss.fen": "Fen (分) — 1/100 of a CNY. All ledger amounts are stored in fen to avoid floating-point drift. The UI shows yuan.",
+    "docs.gloss.tier": "Risk tier — Green (auto-execute), Yellow (confirm), Red (confirm + mock MFA). Assigned by the security review on every planned action.",
+    "docs.gloss.reserved": "Reserved balance — money already earmarked for an upcoming transfer, subscription, or savings goal. Not available for new spends until released.",
+    "docs.gloss.bus": "Cross-page bus — a tiny pub/sub the in-app pages subscribe to. Every state-changing action bumps it, so dashboard, accounts, and budgets re-fetch the next time they're visible.",
+    "docs.gloss.audit": "Audit ledger — append-only log of every state-changing call. Includes user id, request id, action, tool, parameters (masked), risk tier, and result.",
+    "docs.gloss.safety": "Safety lock — a per-user hard stop. When on, every write action is rejected before it reaches the planner. Admins release it from /admin/safety.",
+    "docs.gloss.workflow": "Workflow — a chain of one or more planned actions tied to a single chat or page interaction. The audit ledger links the workflow id to every node it executed.",
+    "docs.gloss.pending": "Pending action — a workflow node that needs user confirmation (and, on Red, mock MFA) before its tool runs. Lives in the same table as the audit entries but with a `confirmation_status` column.",
+    "docs.meta.title": "Documentation",
+    "docs.meta.description":
+      "Every screen, every action, every guarantee — the FinTech Pioneers product manual.",
 
     // Dashboard
     "dash.greeting.morning": "Good morning, {name}",
@@ -425,6 +558,33 @@ export const dictionaries = {
     "error.unauthorized": "Your session expired. Please sign in again.",
     "error.translating": "Translation failed; showing original.",
 
+    // Error / loading / not-found boundaries (used by app/error.tsx,
+    // app/loading.tsx, app/not-found.tsx, app/docs/error.tsx).
+    "error.boundary.eyebrow": "Something broke",
+    "error.boundary.title": "The page hit an unexpected error.",
+    "error.boundary.body":
+      "We've logged the failure and the system is back to a safe state. You can retry, go back, or jump to the dashboard and continue from there.",
+    "error.boundary.eyebrowDocs": "Docs failed to render",
+    "error.boundary.titleDocs": "The docs page hit an unexpected error.",
+    "error.boundary.bodyDocs":
+      "Your account, balances, and ledger are unaffected — only this view failed. Try again, or jump to the dashboard.",
+    "error.boundary.retry": "Try again",
+    "error.boundary.back": "Go back",
+    "error.boundary.dashboard": "Open dashboard",
+    "error.boundary.docs": "Open docs",
+    "error.boundary.reference": "Reference",
+    "error.boundary.help":
+      "If this keeps happening, drop the reference above into the assistant and we'll take a look.",
+    "loading.eyebrow": "Loading",
+    "loading.title": "Getting your workspace ready.",
+    "loading.body": "Pulling balances, ledger, and language settings…",
+    "notfound.eyebrow": "404",
+    "notfound.title": "That page doesn't exist.",
+    "notfound.body":
+      "The link you followed may be stale, or the page may have been moved. The dashboard and docs are good next stops.",
+    "notfound.dashboard": "Go to dashboard",
+    "notfound.docs": "Read the docs",
+
     // Beneficial accounts directory
     "beneficial.eyebrow": "Beneficial accounts",
     "beneficial.title": "Who you pay, in one place.",
@@ -582,6 +742,133 @@ export const dictionaries = {
     "nav.rules": "代理规则",
     "nav.audit": "审计",
     "nav.safety": "风控事件",
+    "nav.docs": "文档",
+
+    // Docs page
+    "docs.eyebrow": "文档",
+    "docs.title": "FinTech Pioneers — 产品手册。",
+    "docs.subtitle":
+      "每一个页面、每一个动作、每一个承诺。读一遍，你就清楚系统在替你做什么。",
+    "docs.searchPh": "按章节筛选…",
+    "docs.lastUpdated": "更新于 {date}",
+    "docs.tocTitle": "本页目录",
+    "docs.copyLink": "复制链接",
+    "docs.copied": "链接已复制",
+    "docs.empty": "没有匹配的章节。",
+    "docs.cta.title": "找不到你需要的？",
+    "docs.cta.body": "在智能助手里说一声，我们会带你走一遍，或者直接把这本手册补全。",
+    "docs.cta.cta": "打开智能助手",
+    "docs.gs.eyebrow": "第 1 步",
+    "docs.gs.title": "开始使用",
+    "docs.gs.body":
+      "登录、设置语言、系统会把你送到 Dashboard。从此以后所有操作都是响应式的：你在工作区做的每一步都会写入真实的账本，跨页面总线会在资金移动的瞬间刷新余额。这里没有伪造的演示数据——你种子的账户是唯一的状态，你的交易是唯一的历史。",
+    "docs.gs.step1.title": "登录",
+    "docs.gs.step1.body": "使用种子的客户或管理员账户登录。第一次登录会设置 CSRF cookie，之后所有改状态的请求都会带上它。",
+    "docs.gs.step2.title": "设置语言",
+    "docs.gs.step2.body": "右上角的语言开关会切换所有可见文案——按钮、卡片、Toast、助手叙述，以及模型用错语言时自动触发的翻译回退。",
+    "docs.gs.step3.title": "读懂 Dashboard",
+    "docs.gs.step3.body": "余额、Top 类目、异常、即将到来的订阅，以及一键跳转到每个工具的入口。只要你在别处动一下，这里的数字就会更新。",
+    "docs.gs.step4.title": "完成一笔真实转账",
+    "docs.gs.step4.body": "打开 Transfers，先添加一个受益人账户，再用英文或中文自然语言描述需求，点 Parse，再点 Confirm。Green 等级的转账会立即扣款；Yellow 或 Red 等级会要求你确认（Red 还需要模拟 MFA）。",
+    "docs.acct.eyebrow": "功能",
+    "docs.acct.title": "账户与账本",
+    "docs.acct.body":
+      "每一笔转账、每一笔消费、每一次订阅续费、每一次理财操作都会记为 transactions 表的一行。Accounts 页面是这个账本的实时视图：左侧选账户，右侧看完整交易流水，再按类目过滤。最新的在前，金额以分（1/100 元）入账，显示时换算成元。",
+    "docs.acct.feature1": "多账户支持，可用余额与预留余额分开显示。",
+    "docs.acct.feature2": "类目筛选标签（餐饮、交通、购物、订阅、转账、收入、理财）。",
+    "docs.acct.feature3": "受益人账户目录（见下）。",
+    "docs.acct.feature4": "成本管理（见 Budgets）。",
+    "docs.ba.eyebrow": "功能",
+    "docs.ba.title": "受益人账户",
+    "docs.ba.body":
+      "在真实银行业务中，「beneficial account」指收款人自己的账户——目的地，而不是汇款人。这个目录是一个持久化、可搜索的收款人列表。在这里新增之后，Transfers 页面和助手在你说「转给 Li Wei 200 元」时都能立刻解析到他。",
+    "docs.ba.f1": "显示名、手机尾号（4 位）、自由形式的银行提示（如「ICBC 招商银行 尾号 1234」）—— 除了显示名其他都可选。",
+    "docs.ba.f2": "按姓名、手机尾号、银行提示实时搜索。",
+    "docs.ba.f3": "首次使用后 verified 标记会自动翻转为 true；无论是否付过款，行都留在目录里。",
+    "docs.ba.f4": "移除某一行不会影响历史交易——你的历史是不可变的。",
+    "docs.xfer.eyebrow": "功能",
+    "docs.xfer.title": "转账",
+    "docs.xfer.body":
+      "Transfers 页面有三种模式：Pay（当场支付）、Schedule（未来定时）、Splits（把一笔账单拆成 N 份给参与者）。Pay 上的自然语言解析器读英文和中文，抽出金额、收款人、备注、（可选）时间，然后走风控审查再放行资金。",
+    "docs.xfer.tiers.title": "风控等级",
+    "docs.xfer.tiers.body":
+      "每一笔当场支付都有一个等级：Green（自动执行，立即扣款）、Yellow（必须确认）、Red（必须确认 + 模拟 MFA）。等级会显示在预览卡片上，附带风控标记。Red 仍然可以确认——系统不会拦你，但会先让你点模拟 MFA 按钮。",
+    "docs.xfer.schedule.title": "定时",
+    "docs.xfer.schedule.body":
+      "如果你的需求里包含日期（如「明天」「下周一」「周五」），智能解析器会抽出 ISO 时间戳并路由到定时接口。今天不扣款；定时列表里会有一行显示未来的入账时间。如果想立即支付，把时间留空，系统就走 Pay 路径。",
+    "docs.xfer.splits.title": "均摊账单",
+    "docs.xfer.splits.body":
+      "创建一个拆分：标题、总金额、N 个参与人。系统会按分（fen）取整算出每人份额，然后你可以一份一份标记为已付。标记已付会写入对应份额的扣款行，并关联到原始账单。",
+    "docs.bg.eyebrow": "功能",
+    "docs.bg.title": "预算（成本管理）",
+    "docs.bg.body":
+      "为每个类目设置月度上限，Dashboard 会实时显示已花 vs 上限的进度条、超支警告、接近上限提示。已花金额按过去 30 天的入账交易计算——只要总线一跳动，一笔转账落地就能让进度条动一下。",
+    "docs.bg.f1": "上限是 CNY / 月，可选地限定到某个账户（或所有账户）。",
+    "docs.bg.f2": "已花 / 利用率 / 剩余在每次总线跳动时重新计算——不用手动刷新。",
+    "docs.bg.f3": "Forecast 页面默认尊重你的上限，所以 what-if 场景能回答「如果再花 X 元，我还守得住上限吗？」",
+    "docs.bg.f4": "删除是即时的；没有软删。你的交易历史不会受影响。",
+    "docs.sub.eyebrow": "功能",
+    "docs.sub.title": "订阅",
+    "docs.sub.body":
+      "系统会列出在你账户上观察到的所有周期性扣款，附下次扣款日期和月度合计。你可以取消订阅（写入「停止后续扣款」标记，不退已付的）、为某个订阅设置提醒，Dashboard 也会展示过去 30 天新检测到的订阅。",
+    "docs.card.eyebrow": "功能",
+    "docs.card.title": "卡片",
+    "docs.card.body":
+      "每张虚拟卡片都有一个状态：active、frozen、cancelled。Cards 页面可以发新卡、冻结一张激活的（拦截新扣款但保留历史）、或直接注销。每一步都写入审计行并跳动总线，Dashboard 立即反映新状态。",
+    "docs.wl.eyebrow": "功能",
+    "docs.wl.title": "理财",
+    "docs.wl.body":
+      "理财产品是模拟的。系统支持 subscribe（从资金账户转入产品）、redeem（转出）、以及组合视图。运行中的 NAV 由产品级日收益滚动合计，Dashboard 会在你流动现金旁展示总投资额。",
+    "docs.fc.eyebrow": "功能",
+    "docs.fc.title": "Forecast",
+    "docs.fc.body":
+      "输入一个 CNY 金额、选一个类目、选一个时间范围（本周、本月、本季）。系统会模拟它对期末余额的影响，判断你付得起，并展示如果同时还一笔即将到来的订阅、或触达预算上限时答案会怎么变。结论用颜色标记：绿色「能」、黄色「紧」、红色「不能」。",
+    "docs.rc.eyebrow": "功能",
+    "docs.rc.title": "Receipt",
+    "docs.rc.body":
+      "拍一张小票照片，或者直接粘贴一份结构化草稿。OCR + 解析器会抽出商家、金额、日期、类目，然后草拟一笔交易让你确认。草拟的交易会走和任何其他动作一样的风控审查，确认后入账。",
+    "docs.vc.eyebrow": "功能",
+    "docs.vc.title": "语音",
+    "docs.vc.body":
+      "按住麦克风、用英文或中文说话，系统会转写、跑和 Chat 一样的 plan-then-confirm 流程，并把建议动作展示为一张卡片。如果等级是 Red，模拟 MFA 提示就在同一流程里——不用跳到别的页面。",
+    "docs.as.eyebrow": "功能",
+    "docs.as.title": "智能助手（Chat）",
+    "docs.as.body":
+      "智能助手是你不想一个个点时的入口。它跑的规划器和专用页面一样（所以 Chat 里说「Pay Li Wei 200」和 /transfers 上同一句话完全等价），多了一层叙述：它在做什么、等级、风控标记、下一步。如果 LLM 用错了语言，自动翻译回退会在 4 秒预算内改写它的叙述而不阻塞调用。",
+    "docs.ad.eyebrow": "管理",
+    "docs.ad.title": "管理控制台",
+    "docs.ad.body":
+      "管理员角色解锁工作区的另一面：所有用户和账户总览、每一次系统动作的审计账本、测试智能助手风控与提示词注入防御的红队演练、可编辑的规则集、以及被锁账户的风控事件流。客户和管理员共享后端，但绝不共享会话——切换角色需要重新登录。",
+    "docs.sf.eyebrow": "安全",
+    "docs.sf.title": "安全、MFA 与封禁",
+    "docs.sf.body":
+      "安全是多层的：助手按风控等级分流，每一次 Red 等级动作都需要模拟 MFA，用户的封禁是写入动作的硬停，审计账本记录每一次状态变更。如果用户账户被锁，封禁原因会写入审计并在管理风控流里展示；管理员可以在那里解除。",
+    "docs.faq.eyebrow": "参考",
+    "docs.faq.title": "FAQ",
+    "docs.faq.q1": "这是真的银行吗？",
+    "docs.faq.a1": "不是。所有内容都是一个 PostgreSQL 实例上的模拟。没有真实资金移动，也没有真实机构为这些余额背书。",
+    "docs.faq.q2": "我的数据存在哪里？",
+    "docs.faq.a2": "在你部署配置的 Postgres 数据库里。审计行是只追加的；审计账本从不更新或删除历史事件。",
+    "docs.faq.q3": "为什么助手有时会用错语言？",
+    "docs.faq.a3": "LLM 是双语的，但不会完美对齐到你的偏好语言。如果回应用的语言和你的设置不一致，系统会在 4 秒预算内对助手的叙述做自动翻译回退；预算超出后会用 Toast 显示原文。",
+    "docs.faq.q4": "我双击 Confirm 会怎样？",
+    "docs.faq.a4": "转账接口是幂等的。第二次点击会带上同一个幂等键，系统返回原来的转账行而不是扣两次款。你会看到一个「replay」Toast。",
+    "docs.faq.q5": "转账入账后能删吗？",
+    "docs.faq.a5": "不能。已入账的转账是不可变的——审计账本是唯一真相。如果转错了，修正方式是再发一笔补偿转账。",
+    "docs.faq.q6": "「Beneficial account」到底是什么意思？",
+    "docs.faq.a6": "指收款人的账户——目的地，而不是汇款人。真实银行用这个词来区分「这笔钱刚落地，落在谁的账户里」和「这笔钱最后归谁所有」。",
+    "docs.gloss.eyebrow": "参考",
+    "docs.gloss.title": "术语",
+    "docs.gloss.fen": "Fen（分）—— 1/100 元。所有账本金额都以分存储，避免浮点漂移。UI 显示的是元。",
+    "docs.gloss.tier": "Risk tier（风控等级）—— Green（自动执行）、Yellow（需确认）、Red（需确认 + 模拟 MFA）。由每次规划动作的安全审查给出。",
+    "docs.gloss.reserved": "Reserved balance（预留余额）—— 已经被一笔即将到来的转账、订阅或储蓄目标占用的钱。在释放之前不能用于新消费。",
+    "docs.gloss.bus": "Cross-page bus（跨页面总线）—— 一个小型 pub/sub，页面订阅它。每一次改状态的动作都会 bump 它，下一次 dashboard、accounts、budgets 可见时就会重新拉取。",
+    "docs.gloss.audit": "Audit ledger（审计账本）—— 每次改状态调用的只追加日志。包含用户 id、请求 id、动作、工具、参数（脱敏）、风控等级、结果。",
+    "docs.gloss.safety": "Safety lock（安全锁）—— 用户的硬停。开启时所有写入动作在到达规划器之前就会被拒。管理员可以在 /admin/safety 解除。",
+    "docs.gloss.workflow": "Workflow（工作流）—— 一次 Chat 或页面交互里的一或多个规划动作链。审计账本把 workflow id 串到它执行的每一个节点上。",
+    "docs.gloss.pending": "Pending action（待确认动作）—— 需要用户确认（Red 还要模拟 MFA）才会跑工具的工作流节点。它和审计行存在同一张表里，多一个 confirmation_status 列。",
+    "docs.meta.title": "文档",
+    "docs.meta.description": "每一个页面、每一个动作、每一个承诺 —— FinTech Pioneers 产品手册。",
 
     // Dashboard
     "dash.greeting.morning": "早上好，{name}",
@@ -717,6 +1004,32 @@ export const dictionaries = {
     "error.network": "网络错误，请重试。",
     "error.unauthorized": "登录已过期，请重新登录。",
     "error.translating": "翻译失败，已展示原文。",
+
+    // Error / loading / not-found boundaries
+    "error.boundary.eyebrow": "出了点问题",
+    "error.boundary.title": "页面遇到了一个意外错误。",
+    "error.boundary.body":
+      "我们已经记录了这次失败，系统回到安全状态。你可以重试、返回上一页，或直接跳到 Dashboard 继续。",
+    "error.boundary.eyebrowDocs": "文档加载失败",
+    "error.boundary.titleDocs": "文档页遇到了一个意外错误。",
+    "error.boundary.bodyDocs":
+      "你的账户、余额、账本都不受影响——只是这个视图坏了。重试一下，或跳到 Dashboard。",
+    "error.boundary.retry": "重试",
+    "error.boundary.back": "返回",
+    "error.boundary.dashboard": "打开 Dashboard",
+    "error.boundary.docs": "打开文档",
+    "error.boundary.reference": "错误引用",
+    "error.boundary.help":
+      "如果反复出现，把下面这串引用发给智能助手，我们会看一下。",
+    "loading.eyebrow": "加载中",
+    "loading.title": "正在准备你的工作区。",
+    "loading.body": "拉取余额、账本和语言设置中…",
+    "notfound.eyebrow": "404",
+    "notfound.title": "这个页面不存在。",
+    "notfound.body":
+      "你点开的链接可能已经失效，或者页面被移走了。Dashboard 和文档是好的下一步。",
+    "notfound.dashboard": "去 Dashboard",
+    "notfound.docs": "读文档",
 
     // Beneficial accounts directory
     "beneficial.eyebrow": "受益人账户",

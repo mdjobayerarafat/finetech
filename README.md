@@ -16,6 +16,7 @@ BankPilot helps users express everyday financial intent in **English, Chinese, o
 | [docs/API.md](./docs/API.md) | REST endpoints, request/response schemas |
 | [docs/POLICY.md](./docs/POLICY.md) | Green / Yellow / Red engine, escalation |
 | [docs/SECURITY.md](./docs/SECURITY.md) | Threat model, defenses, security test matrix |
+| [docs/self-assessment/](./docs/self-assessment/README.md) | External security self-assessment, bilingual (Phase 7 deliverable) |
 | [docs/SCENARIOS.md](./docs/SCENARIOS.md) | The 6 user scenarios, demo prompts |
 | [docs/AGENT_PIPELINE.md](./docs/AGENT_PIPELINE.md) | Intent → slots → DAG → execution |
 | [docs/DEMO_SCRIPT.md](./docs/DEMO_SCRIPT.md) | 5-minute walkthrough for judges |

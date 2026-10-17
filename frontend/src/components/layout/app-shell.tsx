@@ -22,6 +22,7 @@ import {
   Send,
   Users,
   PiggyBank,
+  BookOpen,
 } from "lucide-react";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/store";
@@ -50,6 +51,7 @@ const CUSTOMER_NAV: NavItem[] = [
   { href: "/forecast", label: "nav.forecast", icon: Calculator },
   { href: "/receipt", label: "nav.receipt", icon: Camera },
   { href: "/voice", label: "nav.voice", icon: Mic },
+  { href: "/docs", label: "nav.docs", icon: BookOpen },
 ];
 
 const ADMIN_NAV: NavItem[] = [
