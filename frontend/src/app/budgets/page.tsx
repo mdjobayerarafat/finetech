@@ -125,7 +125,7 @@ function Body() {
       toast({
         title: "Pick a category and amount",
         description: "Both are required to set a budget.",
-        variant: "destructive",
+        variant: "error",
       });
       return;
     }
@@ -137,7 +137,7 @@ function Body() {
         account_id: accountId || undefined,
         note: note || undefined,
       });
-      toast({ title: "Budget set", description: `${category} capped at ${amount}` });
+      toast({ title: "Budget set", description: `${category} capped at ${amount}`, variant: "success" });
       setOpen(false);
       setAmount("");
       setNote("");
@@ -146,7 +146,7 @@ function Body() {
       toast({
         title: "Couldn't save budget",
         description: (e as Error).message ?? "Try again.",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setSaving(false);
@@ -156,13 +156,13 @@ function Body() {
   const onDelete = async (id: string) => {
     try {
       await budgets.remove(id);
-      toast({ title: "Budget removed" });
+      toast({ title: "Budget removed", variant: "success" });
       await refresh();
     } catch (e) {
       toast({
         title: "Couldn't delete",
         description: (e as Error).message,
-        variant: "destructive",
+        variant: "error",
       });
     }
   };
@@ -195,7 +195,8 @@ function Body() {
       </FadeIn>
 
       {/* --- Rollup ----------------------------------------------------- */}
-      <Stagger className="grid gap-4 md:grid-cols-3">
+      <Stagger>
+        <div className="grid gap-4 md:grid-cols-3">
         <StaggerItem>
           <Card>
             <CardHeader className="pb-2">
@@ -245,6 +246,7 @@ function Body() {
             </CardContent>
           </Card>
         </StaggerItem>
+        </div>
       </Stagger>
 
       {/* --- Breach / near-limit callouts ------------------------------- */}
@@ -347,7 +349,7 @@ function Body() {
                     </div>
                     <div className="flex items-center gap-2">
                       {b.breached ? (
-                        <Badge variant="destructive">Over</Badge>
+                        <Badge variant="red">Over</Badge>
                       ) : b.utilization_pct >= 80 ? (
                         <Badge className="bg-amber-500/20 text-amber-700">
                           Near cap
@@ -475,7 +477,7 @@ function Body() {
                   <SelectItem value="">All accounts</SelectItem>
                   {accts.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
-                      {a.display_name} ···{a.account_number_tail}
+                      {a.display_name} ···{a.masked_number}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -413,7 +413,7 @@ pub fn stub_propose(text: &str, state_summary: &Value, language_hint: Option<&st
                     "tool": "budgets.set",
                     "arguments": {
                         "category": cat,
-                        "limit_cny": amt,
+                        "amount_cny": amt,
                     },
                 })],
             };

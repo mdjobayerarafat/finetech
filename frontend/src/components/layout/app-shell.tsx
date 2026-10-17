@@ -21,6 +21,7 @@ import {
   Mic,
   Send,
   Users,
+  PiggyBank,
 } from "lucide-react";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/store";
@@ -42,6 +43,7 @@ const CUSTOMER_NAV: NavItem[] = [
   { href: "/chat", label: "nav.assistant", icon: MessageSquare },
   { href: "/transfers", label: "nav.transfers", icon: Send },
   { href: "/accounts", label: "nav.accounts", icon: Receipt },
+  { href: "/budgets", label: "nav.budgets", icon: PiggyBank },
   { href: "/subscriptions", label: "nav.subscriptions", icon: ArrowLeftRight },
   { href: "/cards", label: "nav.cards", icon: CreditCard },
   { href: "/wealth", label: "nav.wealth", icon: Coins },

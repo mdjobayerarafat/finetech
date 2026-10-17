@@ -276,6 +276,12 @@ function DashboardBody() {
                 <ArrowUpRight className="size-3.5" />
               </Button>
             </Link005>
+            <Link005 href="/budgets">
+              <Button variant="outline" size="sm">
+                {t("dash.cta.budgets")}
+                <ArrowUpRight className="size-3.5" />
+              </Button>
+            </Link005>
           </div>
         </div>
       </FadeIn>

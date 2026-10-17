@@ -9,22 +9,35 @@ import {
   Calendar,
   Lightbulb,
   PiggyBank,
+  Plus,
+  Search,
   ShieldAlert,
   Sparkles,
+  Trash2,
   TrendingDown,
   TrendingUp,
+  UserPlus,
+  Users,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 import {
   accounts,
+  budgets,
   reports,
+  smart,
   transactions,
   type Account,
   type Anomaly,
+  type Budget as BudgetRow,
+  type BudgetSummary,
   type MonthlyReport,
   type OptimizationReport,
   type OptimizationSuggestion,
@@ -36,6 +49,7 @@ import { CurrencyCountUp } from "@/components/motion/count-up";
 import { fenToCny, formatDate, formatDateTime } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { useAccountsBusTick } from "@/lib/store";
+import { useT } from "@/i18n/LanguageProvider";
 import {
   Cell,
   Pie,
@@ -246,6 +260,12 @@ function Body() {
 
       {/* --- Bill analysis ----------------------------------------------- */}
       <BillAnalysis />
+
+      {/* --- Beneficial accounts directory ------------------------------ */}
+      <BeneficialAccountsSection />
+
+      {/* --- Cost management: budgets --------------------------------- */}
+      <BudgetsSection />
 
       {/* --- Reduce cost & optimize ------------------------------------- */}
       <Optimize />
@@ -900,6 +920,10 @@ function SuggestionCard({ s }: { s: OptimizationSuggestion }) {
       <BarChart3 className="size-4 text-primary" />
     ) : s.code === "transfer_fragmentation" ? (
       <ArrowRight className="size-4 text-primary" />
+    ) : s.code === "budget_breached" ? (
+      <AlertTriangle className="size-4 text-tier-red" />
+    ) : s.code === "budget_near_limit" ? (
+      <TrendingUp className="size-4 text-tier-yellow" />
     ) : (
       <Lightbulb className="size-4 text-primary" />
     );
@@ -1010,5 +1034,465 @@ function HeadlineStat({
         </p>
       </div>
     </div>
+  );
+}
+
+
+// --- Beneficial accounts directory -------------------------------------
+//
+// Renders the user's persistent list of who-they-pay and gives them a form
+// to add a new one. The list is the same `payees` table the smart-transfer
+// resolver reads, so adding here makes the new payee immediately available
+// when the user says "Pay Li Wei" in chat or on /transfers.
+
+type BeneficialRow = {
+  id: string;
+  display_name: string;
+  phone_tail: string | null;
+  bank_hint: string | null;
+  destination: string;
+  verified: boolean;
+  first_used_at: string | null;
+  created_at: string;
+};
+
+function BeneficialAccountsSection() {
+  const t = useT();
+  const accountsTick = useAccountsBusTick();
+  const { toast } = useToast();
+  const [rows, setRows] = useState<BeneficialRow[]>([]);
+  const [search, setSearch] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [bank, setBank] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const refresh = () => {
+    smart.beneficialAccounts
+      .list(search.trim() || undefined)
+      .then((r) => setRows(r as BeneficialRow[]))
+      .catch(() => setRows([]));
+  };
+  useEffect(() => {
+    const id = setTimeout(refresh, 200);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, accountsTick]);
+
+  const submit = async () => {
+    if (!name.trim()) {
+      toast({
+        variant: "error",
+        title: t("beneficial.form.title"),
+        description: t("beneficial.form.name"),
+      });
+      return;
+    }
+    setBusy(true);
+    try {
+      await smart.beneficialAccounts.create({
+        display_name: name.trim(),
+        phone_tail: phone.trim() || undefined,
+        bank_hint: bank.trim() || undefined,
+        note: note.trim() || undefined,
+      });
+      toast({ variant: "success", title: t("beneficial.form.added") });
+      setName("");
+      setPhone("");
+      setBank("");
+      setNote("");
+      setAddOpen(false);
+      refresh();
+    } catch (e) {
+      toast({
+        variant: "error",
+        title: t("beneficial.form.title"),
+        description: e instanceof Error ? e.message : "Try again.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="space-y-4">
+      <SectionTitle
+        icon={<Users className="size-4" />}
+        title={t("beneficial.title")}
+        subtitle={t("beneficial.eyebrow")}
+      />
+      <FadeIn>
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <CardDescription>{t("beneficial.subtitle")}</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={t("beneficial.searchPh")}
+                    className="w-56 pl-8"
+                  />
+                </div>
+                <Button onClick={() => setAddOpen((o) => !o)} className="gap-1.5">
+                  <UserPlus className="size-4" />
+                  {t("beneficial.add")}
+                </Button>
+              </div>
+            </div>
+            {addOpen && (
+              <div className="mt-4 grid gap-3 rounded-xl border bg-background/40 p-4 md:grid-cols-2">
+                <div className="md:col-span-1">
+                  <Label>{t("beneficial.form.name")}</Label>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={t("beneficial.form.namePh")}
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <Label>{t("beneficial.form.phone")}</Label>
+                  <Input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder={t("beneficial.form.phonePh")}
+                    inputMode="numeric"
+                    maxLength={6}
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <Label>{t("beneficial.form.bank")}</Label>
+                  <Input
+                    value={bank}
+                    onChange={(e) => setBank(e.target.value)}
+                    placeholder={t("beneficial.form.bankPh")}
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <Label>{t("beneficial.form.note")}</Label>
+                  <Input
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder={t("beneficial.form.notePh")}
+                  />
+                </div>
+                <div className="md:col-span-2 flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setAddOpen(false)}
+                    disabled={busy}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={submit} disabled={busy || !name.trim()}>
+                    {busy
+                      ? t("beneficial.form.submitting")
+                      : t("beneficial.form.submit")}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            {rows.length === 0 ? (
+              <div className="grid h-32 place-items-center text-sm text-muted-foreground">
+                {t("beneficial.empty")}
+              </div>
+            ) : (
+              <ul className="divide-y">
+                {rows.map((r) => (
+                  <motion.li
+                    key={r.id}
+                    layout
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center justify-between gap-4 py-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="grid size-9 place-items-center rounded-lg bg-muted text-xs font-semibold uppercase">
+                        {r.display_name.slice(0, 2)}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">
+                          {r.display_name}
+                        </div>
+                        <div className="truncate text-[11px] text-muted-foreground">
+                          {r.bank_hint ? `${r.bank_hint} · ` : ""}
+                          {r.phone_tail ? `···${r.phone_tail} · ` : ""}
+                          {r.first_used_at
+                            ? t("beneficial.firstUsed", {
+                                when: formatDateTime(r.first_used_at),
+                              })
+                            : t("beneficial.neverUsed")}
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant={r.verified ? "green" : "muted"}>
+                      {r.verified
+                        ? t("beneficial.verified")
+                        : t("beneficial.unverified")}
+                    </Badge>
+                  </motion.li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </FadeIn>
+    </section>
+  );
+}
+
+// --- Cost management: budgets -----------------------------------------
+//
+// This is the "workable like cost management" surface. It hits the
+// /budgets list + summary endpoints, lets the user set / delete a per-
+// category monthly cap, and re-fetches whenever the cross-page bus
+// ticks (a transfer landing will move the spent bars in real time).
+
+function BudgetsSection() {
+  const t = useT();
+  const accountsTick = useAccountsBusTick();
+  const { toast } = useToast();
+  const [list, setList] = useState<BudgetRow[]>([]);
+  const [summary, setSummary] = useState<BudgetSummary | null>(null);
+  const [accts, setAccts] = useState<Account[]>([]);
+  const [category, setCategory] = useState("");
+  const [amount, setAmount] = useState("");
+  const [accountId, setAccountId] = useState<string>("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const refresh = () => {
+    budgets
+      .list()
+      .then((r) => setList(r.budgets ?? []))
+      .catch(() => setList([]));
+    budgets.summary().then(setSummary).catch(() => setSummary(null));
+  };
+  useEffect(() => {
+    refresh();
+    accounts.list().then((a) => setAccts(a)).catch(() => setAccts([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountsTick]);
+
+  const save = async () => {
+    if (!category.trim() || !amount.trim()) {
+      toast({
+        variant: "error",
+        title: t("budgets.form.title"),
+        description: "Category and amount are both required.",
+      });
+      return;
+    }
+    setSaving(true);
+    try {
+      await budgets.set({
+        category: category.trim(),
+        amount: Number(amount) || amount,
+        account_id: accountId || undefined,
+        note: note || undefined,
+      });
+      toast({ variant: "success", title: t("budgets.form.saved") });
+      setCategory("");
+      setAmount("");
+      setNote("");
+      setAccountId("");
+      refresh();
+    } catch (e) {
+      toast({
+        variant: "error",
+        title: t("budgets.form.title"),
+        description: e instanceof Error ? e.message : "Try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    try {
+      await budgets.remove(id);
+      toast({ variant: "success", title: t("budgets.deleted") });
+      refresh();
+    } catch (e) {
+      toast({
+        variant: "error",
+        title: t("budgets.delete"),
+        description: e instanceof Error ? e.message : "Try again.",
+      });
+    }
+  };
+
+  return (
+    <section className="space-y-4">
+      <SectionTitle
+        icon={<PiggyBank className="size-4" />}
+        title={t("budgets.title")}
+        subtitle={t("budgets.eyebrow")}
+      />
+
+      <FadeIn>
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <CardTitle>{t("budgets.summary.title")}</CardTitle>
+                <CardDescription>{t("budgets.subtitle")}</CardDescription>
+              </div>
+              {summary ? (
+                <div className="text-right">
+                  <div className="text-2xl font-display font-semibold tracking-tight">
+                    {summary.display.remaining}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {t("budgets.summary.remaining", {
+                      amount: summary.display.remaining,
+                      total: summary.display.limit,
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="md:col-span-1">
+                <Label>{t("budgets.form.category")}</Label>
+                <Input
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder={t("budgets.form.categoryPh")}
+                />
+              </div>
+              <div className="md:col-span-1">
+                <Label>{t("budgets.form.amount")}</Label>
+                <Input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="3000"
+                  inputMode="decimal"
+                />
+              </div>
+              <div className="md:col-span-1">
+                <Label>{t("budgets.form.account")}</Label>
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                >
+                  <option value="">{t("budgets.form.account.all")}</option>
+                  {accts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.display_name} ···{a.masked_number}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={save}
+                  disabled={saving || !category.trim() || !amount.trim()}
+                  className="w-full"
+                >
+                  {saving ? t("budgets.form.submitting") : t("budgets.form.submit")}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </FadeIn>
+
+      <FadeIn delay={0.05}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{t("budgets.eyebrow")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {list.length === 0 ? (
+              <div className="grid h-32 place-items-center text-sm text-muted-foreground">
+                {t("budgets.empty")}
+              </div>
+            ) : (
+              <ul className="grid gap-3 md:grid-cols-2">
+                {list.map((b) => {
+                  const pct = Math.min(100, Math.round(b.utilization_pct));
+                  const over = b.breached;
+                  const barColor = over
+                    ? "bg-rose-500"
+                    : pct >= 80
+                      ? "bg-amber-500"
+                      : "bg-emerald-500";
+                  return (
+                    <motion.li
+                      key={b.id}
+                      layout
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn(
+                        "rounded-xl border bg-card/60 p-4",
+                        over && "border-rose-500/40",
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold">
+                            {b.category}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {t("budgets.spent", {
+                              spent: fenToCny(b.spent_fen),
+                              limit: fenToCny(b.limit_fen),
+                            })}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => remove(b.id)}
+                          className="text-muted-foreground hover:text-rose-500"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={cn("h-full rounded-full", barColor)}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                        <span className="text-muted-foreground">
+                          {t("budgets.utilization", { pct })}
+                        </span>
+                        <span
+                          className={cn(
+                            over ? "text-rose-500" : "text-muted-foreground",
+                          )}
+                        >
+                          {over
+                            ? t("budgets.breached", {
+                                amount: fenToCny(b.spent_fen - b.limit_fen),
+                              })
+                            : t("budgets.remaining", {
+                                amount: fenToCny(b.remaining_fen),
+                              })}
+                        </span>
+                      </div>
+                    </motion.li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </FadeIn>
+    </section>
   );
 }

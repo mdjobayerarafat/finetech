@@ -240,7 +240,7 @@ function PayTab() {
         });
         toast({
           variant: "success",
-          title: t("transfers.scheduled", "Scheduled"),
+          title: t("transfers.scheduled"),
           description: `${fenToCny(r.amount_fen)} to ${preview.payee.display_name} on ${new Date(r.schedule_iso).toLocaleString()}.`,
         });
         accountsBusApi.bump("transfer.scheduled");
@@ -279,11 +279,11 @@ function PayTab() {
             riskTier: (tier as "Green" | "Yellow" | "Red") ?? "Yellow",
           });
           toast({
-            variant: "info",
+            variant: "warning",
             title:
               tier === "Red"
-                ? t("transfer.execute.red", "Blocked pending your confirmation + mock MFA.")
-                : t("transfer.execute.yellow", "Needs your confirmation before posting."),
+                ? t("transfer.execute.red")
+                : t("transfer.execute.yellow"),
           });
           return;
         }
@@ -293,15 +293,13 @@ function PayTab() {
       const who = preview.payee.display_name;
       toast({
         variant: "success",
-        title: t("transfer.execute.success", "Transfer posted"),
+        title: t("transfer.execute.success"),
         description: res.replay
-          ? t(
-              "transfer.execute.replay",
-              "Already posted — no double-debit.",
-            )
-          : t("transfer.execute.successBody", `${amount} to ${who} · balance updated.`)
-              .replace("{amount}", amount)
-              .replace("{who}", who),
+          ? t("transfer.execute.replay")
+          : t("transfer.execute.successBody", {
+              amount,
+              who,
+            }),
       });
       accountsBusApi.bump("transfer.execute");
       accounts
@@ -313,20 +311,18 @@ function PayTab() {
       setScheduleIso("");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Confirm failed";
-      toast({ variant: "error", title: t("transfer.execute.failed", "Transfer failed."), description: msg });
+      toast({ variant: "error", title: t("transfer.execute.failed"), description: msg });
     } finally {
       setConfirmBusy(false);
     }
   };
 
-  const onActionDone = (didExecute: boolean) => {
-    if (didExecute) {
-      accountsBusApi.bump("transfer.execute");
-      accounts
-        .list()
-        .then((a) => setAccounts(a))
-        .catch(() => {});
-    }
+  const onActionDone = () => {
+    accountsBusApi.bump("transfer.execute");
+    accounts
+      .list()
+      .then((a) => setAccounts(a))
+      .catch(() => {});
     setPending(null);
     setPreview(null);
     setParsed(null);
@@ -428,6 +424,20 @@ function PayTab() {
                 onConfirm={confirm}
                 confirmBusy={confirmBusy}
                 scheduleNote={preview.review.schedule_note}
+              />
+            </FadeIn>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {pending && (
+            <FadeIn delay={0.05}>
+              <ConfirmationCard
+                pendingActionId={pending.id}
+                tool={pending.tool}
+                parameters={pending.parameters}
+                riskTier={pending.riskTier}
+                onDone={onActionDone}
               />
             </FadeIn>
           )}
