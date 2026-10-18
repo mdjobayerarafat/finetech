@@ -38,7 +38,7 @@ sidebar_position: 1
 
 ## Important context for reviewers
 
-BankPilot is a **demonstration platform**. No real banks, no real
+FinTech Pioneers is a **demonstration platform**. No real banks, no real
 cards, no real money. Every "transfer" is a row in a Postgres
 ledger; every "card" is a tuple in `cards`. The security controls
 in this document are written to defend that ledger *as if it were

@@ -1685,6 +1685,28 @@ pub fn registry() -> std::collections::HashMap<&'static str, ToolFn> {
     m.insert("budgets.set", |ctx, p| Box::pin(t_budget_set(ctx, p)));
     m.insert("budgets.list", |ctx, p| Box::pin(t_budget_list(ctx, p)));
     m.insert("budgets.reserve", |ctx, p| Box::pin(t_budget_reserve(ctx, p)));
+    // Agent v3 — close-the-loop, plan-persistence, proactive-intelligence
+    // tools. Implemented in agent_v3.rs.
+    use crate::agent_v3;
+    m.insert("transfers.get_status", |ctx, p| Box::pin(agent_v3::t_transfers_get_status(ctx, p)));
+    m.insert("transfers.cancel_pending", |ctx, p| Box::pin(agent_v3::t_transfers_cancel_pending(ctx, p)));
+    m.insert("transfers.reverse_recent", |ctx, p| Box::pin(agent_v3::t_transfers_reverse_recent(ctx, p)));
+    m.insert("subscriptions.snooze", |ctx, p| Box::pin(agent_v3::t_subscriptions_snooze(ctx, p)));
+    m.insert("subscriptions.defer_charge", |ctx, p| Box::pin(agent_v3::t_subscriptions_defer_charge(ctx, p)));
+    m.insert("subscriptions.uncancel_recent", |ctx, p| Box::pin(agent_v3::t_subscriptions_uncancel_recent(ctx, p)));
+    m.insert("transactions.search", |ctx, p| Box::pin(agent_v3::t_transactions_search(ctx, p)));
+    m.insert("transactions.merchant_history", |ctx, p| Box::pin(agent_v3::t_transactions_merchant_history(ctx, p)));
+    m.insert("transactions.dispute_draft", |ctx, p| Box::pin(agent_v3::t_transactions_dispute_draft(ctx, p)));
+    m.insert("payees.add", |ctx, p| Box::pin(agent_v3::t_payees_add(ctx, p)));
+    m.insert("payees.verify", |ctx, p| Box::pin(agent_v3::t_payees_verify(ctx, p)));
+    m.insert("payees.merge_duplicates", |ctx, p| Box::pin(agent_v3::t_payees_merge_duplicates(ctx, p)));
+    m.insert("workflows.list_pending", |ctx, p| Box::pin(agent_v3::t_workflows_list_pending(ctx, p)));
+    m.insert("workflows.resume", |ctx, p| Box::pin(agent_v3::t_workflows_resume(ctx, p)));
+    m.insert("actions.defer", |ctx, p| Box::pin(agent_v3::t_actions_defer(ctx, p)));
+    m.insert("insights.daily_digest", |ctx, p| Box::pin(agent_v3::t_insights_daily_digest(ctx, p)));
+    m.insert("goals.progress", |ctx, p| Box::pin(agent_v3::t_goals_progress(ctx, p)));
+    m.insert("goals.rebalance", |ctx, p| Box::pin(agent_v3::t_goals_rebalance(ctx, p)));
+    m.insert("goals.contribute", |ctx, p| Box::pin(agent_v3::t_goals_contribute(ctx, p)));
     m
 }
 
@@ -2367,6 +2389,40 @@ pub fn canonicalize_tool_name(name: &str) -> &str {
         | "budget_status" => "budgets.list",
         "reserve_money" | "set_aside" | "put_aside" | "save_for"
         | "budgets.reserve" | "reserve_budget" => "budgets.reserve",
+        // Agent v3 — close-the-loop, plan-persistence, proactive
+        "transfer_status" | "check_transfer" | "did_it_go_through"
+        | "transfers.status" | "transfers.check" => "transfers.get_status",
+        "cancel_transfer" | "stop_transfer" | "transfers.cancel"
+        | "transfers.revoke" => "transfers.cancel_pending",
+        "reverse_transfer" | "undo_transfer" | "transfers.reverse"
+        | "transfers.undo" => "transfers.reverse_recent",
+        "snooze" | "pause_subscription" | "skip_subscription"
+        | "subscriptions.pause" | "subscriptions.skip" => "subscriptions.snooze",
+        "defer_subscription" | "defer_next_charge"
+        | "subscriptions.skip_next" => "subscriptions.defer_charge",
+        "uncancel" | "uncancel_subscription" | "reactivate"
+        | "subscriptions.uncancel" | "subscriptions.reactivate" =>
+            "subscriptions.uncancel_recent",
+        "search_transactions" | "find_transaction" | "tx_search"
+        | "transactions.find" | "transactions.lookup" => "transactions.search",
+        "merchant_history" | "merchant_summary" | "how_much_at_merchant"
+        | "transactions.by_merchant" => "transactions.merchant_history",
+        "dispute" | "dispute_charge" | "chargeback" | "refund_request"
+        | "transactions.dispute" => "transactions.dispute_draft",
+        "add_payee" | "new_payee" | "create_payee_v3" => "payees.add",
+        "verify_payee" | "confirm_payee" | "payees.confirm" => "payees.verify",
+        "merge_payees" | "dedup_payees" | "payees.dedup" => "payees.merge_duplicates",
+        "list_workflows" | "pending_workflows" | "show_pending"
+        | "workflows.list" | "plans.list" => "workflows.list_pending",
+        "resume_workflow" | "resume_plan" | "workflows.continue"
+        | "plans.resume" => "workflows.resume",
+        "defer_action" | "defer_confirmation" | "wait" => "actions.defer",
+        "daily_digest" | "today_summary" | "what_should_i_know"
+        | "insights.today" | "insights.digest" => "insights.daily_digest",
+        "goal_progress" | "how_am_i_doing" | "goals.status"
+        | "goals.show" => "goals.progress",
+        "rebalance_goal" | "plan_goal" | "goal_plan" => "goals.rebalance",
+        "contribute" | "add_to_goal" | "save_to_goal" => "goals.contribute",
         // Pass-through
         other => other,
     }

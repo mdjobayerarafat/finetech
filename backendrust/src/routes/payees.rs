@@ -341,13 +341,21 @@ async fn list_transfers(
 ) -> Result<HttpResponse, ApiError> {
     let user = auth.0;
     let q = q.into_inner();
+    // Postgres-bind positional placeholders ($1, $2, ...). The prior `?` form
+    // caused a 500 because sqlx forwarded the literal `?` to Postgres, which
+    // does not understand MySQL-style binds.
     let mut sql = String::from(
-        "SELECT t.* FROM transfers t JOIN accounts a ON a.id = t.source_account_id WHERE a.user_id = ?",
+        "SELECT t.* FROM transfers t JOIN accounts a ON a.id = t.source_account_id WHERE a.user_id = $1",
     );
+    let mut bind_index: i32 = 2;
     if q.status.is_some() {
-        sql.push_str(" AND t.status = ?");
+        sql.push_str(&format!(" AND t.status = ${}", bind_index));
+        bind_index += 1;
     }
-    sql.push_str(" ORDER BY t.created_at DESC LIMIT ?");
+    sql.push_str(&format!(
+        " ORDER BY t.created_at DESC LIMIT ${}",
+        bind_index
+    ));
     let mut query = sqlx::query_as::<_, Transfer>(&sql).bind(&user.id);
     if let Some(s) = q.status {
         query = query.bind(s);

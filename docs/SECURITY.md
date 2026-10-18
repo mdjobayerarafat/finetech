@@ -131,4 +131,4 @@ The CI suite must run these (and similar) and assert the expected response:
 
 ## 7. Honest security boundary
 
-BankPilot is a prototype, not a real bank. It does not prove that LLMs are immune to prompt injection. The goal is to ensure that **an LLM mistake cannot independently authorise a financial action.** Production use would require a much broader legal, security, operational, and financial review.
+FinTech Pioneers is a prototype, not a real bank. It does not prove that LLMs are immune to prompt injection. The goal is to ensure that **an LLM mistake cannot independently authorise a financial action.** Production use would require a much broader legal, security, operational, and financial review.

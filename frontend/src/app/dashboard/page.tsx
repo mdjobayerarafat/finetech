@@ -20,12 +20,15 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { accounts, reports, subscriptions, type Account, type SpendingReport, type Anomaly, type Subscription } from "@/lib/api";
+import { accounts, reports, subscriptions, insights, type Account, type SpendingReport, type Anomaly, type Subscription, type DailyDigest } from "@/lib/api";
 import { CurrencyCountUp } from "@/components/motion/count-up";
 import { FadeIn, Stagger, StaggerItem, AuroraBackdrop, MountainHero, PortfolioLine } from "@/components/motion/aurora";
 import { Link005 } from "@/components/ui/skiper-ui/skiper40";
-import { useT } from "@/i18n/LanguageProvider";
-import { fenToCny, formatDate, relativeTime } from "@/lib/utils";
+import { useLanguage, useT } from "@/i18n/LanguageProvider";
+import { usePageTitle } from "@/lib/use-page-title";
+import { QuickstartBanner } from "@/components/feedback/quickstart-banner";
+import { cn, fenToCny, formatDate, relativeTime } from "@/lib/utils";
+import { useAccountsBusTick } from "@/lib/store";
 import {
   PieChart,
   Pie,
@@ -46,24 +49,48 @@ export default function DashboardPage() {
 
 function DashboardBody() {
   const t = useT();
+  const { lang } = useLanguage();
+  usePageTitle("meta.dashboard.title", "Dashboard");
+  // 12-month axis labels — English short names by default, Chinese 1-12月
+  // when the user has switched the UI to 中文.
+  const chartMonths = lang === "zh"
+    ? ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"]
+    : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const [accts, setAccts] = useState<Account[]>([]);
   const [report, setReport] = useState<SpendingReport | null>(null);
   const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
   const [subs, setSubs] = useState<Subscription[]>([]);
+  const [digest, setDigest] = useState<DailyDigest | null>(null);
+  const [digestAcknowledged, setDigestAcknowledged] = useState(false);
 
   // Refresh whenever the cross-page bus ticks (after a transfer / wealth /
   // subscription / savings action). Also runs once on mount.
   const accountsTick = useAccountsBusTick();
   useEffect(() => {
-    Promise.all([accounts.list(), reports.spending(), reports.anomalies(), subscriptions.list()])
-      .then(([a, r, an, s]) => {
+    Promise.all([
+      accounts.list(),
+      reports.spending(),
+      reports.anomalies(),
+      subscriptions.list(),
+      insights.daily().catch(() => null),
+    ])
+      .then(([a, r, an, s, d]) => {
         setAccts(a);
         setReport(r);
         setAnomalies(an);
         setSubs(s);
+        if (d) setDigest(d);
       })
       .catch(() => {});
   }, [accountsTick]);
+
+  const ackDigest = () => {
+    if (!digest) return;
+    insights
+      .ack()
+      .then(() => setDigestAcknowledged(true))
+      .catch(() => setDigestAcknowledged(true));
+  };
 
   const totalAvailable = accts.reduce((s, a) => s + a.available_balance_fen, 0);
   const totalReserved = accts.reduce((s, a) => s + a.reserved_balance_fen, 0);
@@ -72,6 +99,69 @@ function DashboardBody() {
   return (
     <div className="space-y-8">
       <AuroraBackdrop />
+      <QuickstartBanner />
+      {digest && (
+        <FadeIn>
+          <Card className="border border-white/10 bg-white/5 backdrop-blur">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Sparkles className="h-4 w-4 text-brand" />
+                  {t("agent.daily_digest.title")}
+                </CardTitle>
+                <CardDescription>
+                  {t("agent.daily_digest.renewals")} · {t("agent.daily_digest.goals")} · {t("agent.daily_digest.anomalies")}
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={ackDigest}
+                disabled={digestAcknowledged}
+              >
+                {digestAcknowledged ? "✓" : t("agent.daily_digest.cta")}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-white/5 bg-white/5 p-3">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {t("agent.daily_digest.renewals")}
+                  </div>
+                  <div className="mt-1 text-2xl font-semibold">
+                    {digest.items.renewals.length}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {digest.items.renewals.slice(0, 2).map((r) => r.merchant).join(" · ") || "—"}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-white/5 bg-white/5 p-3">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {t("agent.daily_digest.spend")}
+                  </div>
+                  <div className="mt-1 text-2xl font-semibold">
+                    {fenToCny(digest.items.spend_24h_fen)}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {t("agent.daily_digest.anomalies")}: {digest.items.anomaly_count_24h}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-white/5 bg-white/5 p-3">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {t("agent.daily_digest.pending_plans")}
+                  </div>
+                  <div className="mt-1 text-2xl font-semibold">
+                    {digest.items.pending_workflows}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {t("agent.daily_digest.goals")}: {digest.items.goals.length}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </FadeIn>
+      )}
 
       {/* HERO — Novara style */}
       <FadeIn>
@@ -86,7 +176,7 @@ function DashboardBody() {
                 transition={{ delay: 0.05 }}
                 className="text-[11px] font-medium uppercase tracking-[0.22em] text-primary"
               >
-                Clarity today. A brighter tomorrow.
+                {t("dash.hero.eyebrow")}
               </motion.p>
               <motion.h1
                 initial={{ opacity: 0, y: 10 }}
@@ -94,9 +184,9 @@ function DashboardBody() {
                 transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                 className="mt-4 font-display text-4xl font-semibold leading-[1.04] tracking-tight text-foreground sm:text-5xl lg:text-6xl"
               >
-                Your goals.
+                {t("dash.hero.titleLead")}
                 <br />
-                <span className="text-brand">A brighter tomorrow.</span>
+                <span className="text-brand">{t("dash.hero.titleBrand")}</span>
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
@@ -104,8 +194,7 @@ function DashboardBody() {
                 transition={{ delay: 0.2 }}
                 className="mt-5 max-w-md text-base text-muted-foreground"
               >
-                Personalized financial guidance to help you build wealth, protect what
-                matters, and live the life you envision.
+                {t("dash.hero.body")}
               </motion.p>
 
               <motion.div
@@ -115,12 +204,12 @@ function DashboardBody() {
                 className="mt-7 flex flex-wrap items-center gap-3"
               >
                 <Button variant="gradient" size="lg">
-                  Book a consultation
+                  {t("dash.hero.cta.consultation")}
                   <ArrowUpRight className="size-4" />
                 </Button>
                 <Button variant="outline" size="lg">
                   <Play className="size-4" />
-                  Watch the demo
+                  {t("dash.hero.cta.demo")}
                 </Button>
               </motion.div>
 
@@ -134,9 +223,9 @@ function DashboardBody() {
                 className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm"
               >
                 {[
-                  { icon: BarChart3, label: "Trusted expertise" },
-                  { icon: ShieldHalf, label: "Client-first approach" },
-                  { icon: Compass, label: "Long-term partnership" },
+                  { icon: BarChart3, label: t("dash.hero.trust.expertise") },
+                  { icon: ShieldHalf, label: t("dash.hero.trust.clientFirst") },
+                  { icon: Compass, label: t("dash.hero.trust.partnership") },
                 ].map((it) => (
                   <motion.li
                     key={it.label}
@@ -165,7 +254,7 @@ function DashboardBody() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    Total portfolio value
+                    {t("dash.hero.portfolio.title")}
                   </p>
                   <div className="mt-2 font-display text-4xl font-semibold tracking-tight">
                     <CurrencyCountUp fen={totalAvailable} />
@@ -173,23 +262,23 @@ function DashboardBody() {
                   <div className="mt-2 flex items-center gap-1.5 text-sm">
                     <TrendingUp className="size-3.5 text-primary" />
                     <span className="font-medium text-primary">+12.4%</span>
-                    <span className="text-muted-foreground">vs. last quarter</span>
+                    <span className="text-muted-foreground">{t("dash.hero.portfolio.delta")}</span>
                   </div>
                 </div>
                 <button className="flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-white/10">
-                  Last 12 months
+                  {t("dash.hero.portfolio.last12")}
                 </button>
               </div>
 
               <div className="mt-4">
-                <PortfolioLine />
+                <PortfolioLine months={chartMonths} />
               </div>
 
               <div className="mt-5 grid grid-cols-3 gap-3">
                 {[
-                  { icon: TrendingUp, label: "Wealth growth", value: "+12.4%" },
-                  { icon: ShieldHalf, label: "Diversification", value: "Balanced" },
-                  { icon: ShieldCheck, label: "Risk level", value: "Moderate" },
+                  { icon: TrendingUp, label: t("dash.hero.portfolio.wealthGrowth"), value: "+12.4%" },
+                  { icon: ShieldHalf, label: t("dash.hero.portfolio.diversification"), value: t("dash.hero.portfolio.diversificationValue") },
+                  { icon: ShieldCheck, label: t("dash.hero.portfolio.riskLevel"), value: t("dash.hero.portfolio.riskLevelValue") },
                 ].map((s, i) => (
                   <motion.div
                     key={s.label}
@@ -564,7 +653,3 @@ function KpiCard({
     </Card>
   );
 }
-
-// cn re-export for this file's convenience
-import { cn } from "@/lib/utils";
-import { useAccountsBusTick } from "@/lib/store";

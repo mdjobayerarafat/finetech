@@ -1035,6 +1035,503 @@ static SPECS: Lazy<Vec<ToolSpec>> = Lazy::new(|| vec![
             },
         ],
     },
+
+    // -------------------------------------------------------------------
+    // Layer 1 — close-the-loop tools
+    // -------------------------------------------------------------------
+
+    ToolSpec {
+        canonical_name: "transfers.get_status",
+        mutating: false,
+        default_tier: "Green",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["transfer_id"],
+            "properties": { "transfer_id": {"type": "string"} }
+        }),
+        required_slots: &[SlotSpec {
+            name: "transfer_id",
+            question: "Which transfer?",
+            kind: SlotKind::Identifier,
+            extract_hint: Some("transfer id (e.g. tx_...)"),
+            inferable: true,
+        }],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "transfers.cancel_pending",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["transfer_id"],
+            "properties": { "transfer_id": {"type": "string"} }
+        }),
+        required_slots: &[SlotSpec {
+            name: "transfer_id",
+            question: "Which transfer should I cancel?",
+            kind: SlotKind::Identifier,
+            extract_hint: None,
+            inferable: true,
+        }],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "transfers.reverse_recent",
+        mutating: true,
+        default_tier: "Red",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["transfer_id", "reason"],
+            "properties": {
+                "transfer_id": {"type": "string"},
+                "reason": {"type": "string", "minLength": 4, "maxLength": 200}
+            }
+        }),
+        required_slots: &[
+            SlotSpec {
+                name: "transfer_id",
+                question: "Which transfer should I reverse?",
+                kind: SlotKind::Identifier,
+                extract_hint: None,
+                inferable: true,
+            },
+            SlotSpec {
+                name: "reason",
+                question: "Why are you reversing this?",
+                kind: SlotKind::String,
+                extract_hint: Some("A short, plain-language reason for the audit log."),
+                inferable: false,
+            },
+        ],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "subscriptions.snooze",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["subscription_id", "days"],
+            "properties": {
+                "subscription_id": {"type": "string"},
+                "days": {"type": "integer", "minimum": 1, "maximum": 90}
+            }
+        }),
+        required_slots: &[
+            SlotSpec {
+                name: "subscription_id",
+                question: "Which subscription?",
+                kind: SlotKind::Identifier,
+                extract_hint: None,
+                inferable: true,
+            },
+            SlotSpec {
+                name: "days",
+                question: "Snooze for how many days?",
+                kind: SlotKind::AmountFen,
+                extract_hint: Some("Look for 'for a week', 'two weeks', 'a month'."),
+                inferable: true,
+            },
+        ],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "subscriptions.defer_charge",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["subscription_id"],
+            "properties": {
+                "subscription_id": {"type": "string"},
+                "reason": {"type": "string", "maxLength": 200}
+            }
+        }),
+        required_slots: &[SlotSpec {
+            name: "subscription_id",
+            question: "Which subscription's next charge should I skip?",
+            kind: SlotKind::Identifier,
+            extract_hint: None,
+            inferable: true,
+        }],
+        optional_slots: &[SlotSpec {
+            name: "reason",
+            question: "Why?",
+            kind: SlotKind::String,
+            extract_hint: Some("Free text; appears in the audit log only."),
+            inferable: true,
+        }],
+    },
+    ToolSpec {
+        canonical_name: "subscriptions.uncancel_recent",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["subscription_id"],
+            "properties": { "subscription_id": {"type": "string"} }
+        }),
+        required_slots: &[SlotSpec {
+            name: "subscription_id",
+            question: "Which cancelled subscription should I bring back?",
+            kind: SlotKind::Identifier,
+            extract_hint: None,
+            inferable: true,
+        }],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "transactions.search",
+        mutating: false,
+        default_tier: "Green",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["query"],
+            "properties": {
+                "query": {"type": "string"},
+                "from": {"type": "string", "format": "date"},
+                "to": {"type": "string", "format": "date"},
+                "min_amount_fen": {"type": "integer", "minimum": 0},
+                "max_amount_fen": {"type": "integer", "minimum": 0},
+                "category": {"type": "string"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 200}
+            }
+        }),
+        required_slots: &[SlotSpec {
+            name: "query",
+            question: "What are you looking for? (merchant, amount, keyword)",
+            kind: SlotKind::String,
+            extract_hint: Some("Free text: 'Acme Books', '286', 'coffee last week'."),
+            inferable: true,
+        }],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "transactions.merchant_history",
+        mutating: false,
+        default_tier: "Green",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["merchant"],
+            "properties": {
+                "merchant": {"type": "string"},
+                "months": {"type": "integer", "minimum": 1, "maximum": 36}
+            }
+        }),
+        required_slots: &[SlotSpec {
+            name: "merchant",
+            question: "Which merchant?",
+            kind: SlotKind::String,
+            extract_hint: None,
+            inferable: true,
+        }],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "transactions.dispute_draft",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["transaction_id", "reason"],
+            "properties": {
+                "transaction_id": {"type": "string"},
+                "reason": {"type": "string", "minLength": 4, "maxLength": 500}
+            }
+        }),
+        required_slots: &[
+            SlotSpec {
+                name: "transaction_id",
+                question: "Which charge looks wrong?",
+                kind: SlotKind::Identifier,
+                extract_hint: None,
+                inferable: true,
+            },
+            SlotSpec {
+                name: "reason",
+                question: "Why are you disputing it?",
+                kind: SlotKind::String,
+                extract_hint: Some("'I never bought this', 'charged twice', 'wrong amount'."),
+                inferable: false,
+            },
+        ],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "payees.add",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["display_name"],
+            "properties": {
+                "display_name": {"type": "string", "minLength": 1, "maxLength": 80},
+                "phone_tail": {"type": "string", "minLength": 4, "maxLength": 20},
+                "mock_destination": {"type": "string", "minLength": 1, "maxLength": 80}
+            }
+        }),
+        required_slots: &[SlotSpec {
+            name: "display_name",
+            question: "What's the payee's name?",
+            kind: SlotKind::String,
+            extract_hint: None,
+            inferable: true,
+        }],
+        optional_slots: &[
+            SlotSpec {
+                name: "phone_tail",
+                question: "Phone tail? (last 4+ digits)",
+                kind: SlotKind::String,
+                extract_hint: Some("Last 4+ digits of the payee's phone."),
+                inferable: true,
+            },
+            SlotSpec {
+                name: "mock_destination",
+                question: "Mock destination label?",
+                kind: SlotKind::String,
+                extract_hint: Some("Internal label, e.g. 'mock_bank_account'."),
+                inferable: true,
+            },
+        ],
+    },
+    ToolSpec {
+        canonical_name: "payees.verify",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["payee_id", "challenge_fen", "code"],
+            "properties": {
+                "payee_id": {"type": "string"},
+                "challenge_fen": {"type": "integer", "minimum": 1, "maximum": 100},
+                "code": {"type": "string", "minLength": 4, "maxLength": 8}
+            }
+        }),
+        required_slots: &[
+            SlotSpec {
+                name: "payee_id",
+                question: "Which payee?",
+                kind: SlotKind::Identifier,
+                extract_hint: None,
+                inferable: true,
+            },
+            SlotSpec {
+                name: "code",
+                question: "Enter the 4-digit code the payee received.",
+                kind: SlotKind::String,
+                extract_hint: None,
+                inferable: false,
+            },
+        ],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "payees.merge_duplicates",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["keep_id", "merge_id"],
+            "properties": {
+                "keep_id": {"type": "string"},
+                "merge_id": {"type": "string"}
+            }
+        }),
+        required_slots: &[
+            SlotSpec {
+                name: "keep_id",
+                question: "Which payee should be the survivor?",
+                kind: SlotKind::Identifier,
+                extract_hint: None,
+                inferable: true,
+            },
+            SlotSpec {
+                name: "merge_id",
+                question: "Which one should be merged in (and removed)?",
+                kind: SlotKind::Identifier,
+                extract_hint: None,
+                inferable: true,
+            },
+        ],
+        optional_slots: &[],
+    },
+
+    // -------------------------------------------------------------------
+    // Layer 2 — plan persistence
+    // -------------------------------------------------------------------
+
+    ToolSpec {
+        canonical_name: "workflows.list_pending",
+        mutating: false,
+        default_tier: "Green",
+        arguments_schema: json!({
+            "type": "object",
+            "properties": {}
+        }),
+        required_slots: &[],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "workflows.resume",
+        mutating: false,
+        default_tier: "Green",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["workflow_id"],
+            "properties": { "workflow_id": {"type": "string"} }
+        }),
+        required_slots: &[SlotSpec {
+            name: "workflow_id",
+            question: "Which plan?",
+            kind: SlotKind::Identifier,
+            extract_hint: None,
+            inferable: true,
+        }],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "actions.defer",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["pending_action_id", "minutes"],
+            "properties": {
+                "pending_action_id": {"type": "string"},
+                "minutes": {"type": "integer", "minimum": 5, "maximum": 1440}
+            }
+        }),
+        required_slots: &[
+            SlotSpec {
+                name: "pending_action_id",
+                question: "Which confirmation?",
+                kind: SlotKind::Identifier,
+                extract_hint: None,
+                inferable: true,
+            },
+            SlotSpec {
+                name: "minutes",
+                question: "Defer for how many minutes?",
+                kind: SlotKind::AmountFen,
+                extract_hint: None,
+                inferable: true,
+            },
+        ],
+        optional_slots: &[],
+    },
+
+    // -------------------------------------------------------------------
+    // Layer 3 — proactive intelligence
+    // -------------------------------------------------------------------
+
+    ToolSpec {
+        canonical_name: "insights.daily_digest",
+        mutating: false,
+        default_tier: "Green",
+        arguments_schema: json!({
+            "type": "object",
+            "properties": { "ack": {"type": "boolean"} }
+        }),
+        required_slots: &[],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "goals.progress",
+        mutating: false,
+        default_tier: "Green",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["goal_id"],
+            "properties": { "goal_id": {"type": "string"} }
+        }),
+        required_slots: &[SlotSpec {
+            name: "goal_id",
+            question: "Which goal?",
+            kind: SlotKind::Identifier,
+            extract_hint: None,
+            inferable: true,
+        }],
+        optional_slots: &[],
+    },
+    ToolSpec {
+        canonical_name: "goals.rebalance",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["goal_id", "monthly_amount_fen"],
+            "properties": {
+                "goal_id": {"type": "string"},
+                "monthly_amount_fen": {"type": "integer", "minimum": 100},
+                "source_account_id": {"type": "string"}
+            }
+        }),
+        required_slots: &[
+            SlotSpec {
+                name: "goal_id",
+                question: "Which goal?",
+                kind: SlotKind::Identifier,
+                extract_hint: None,
+                inferable: true,
+            },
+            SlotSpec {
+                name: "monthly_amount_fen",
+                question: "How much per month?",
+                kind: SlotKind::AmountFen,
+                extract_hint: Some("Required to hit the target on time."),
+                inferable: true,
+            },
+        ],
+        optional_slots: &[
+            SlotSpec {
+                name: "source_account_id",
+                question: "Which account?",
+                kind: SlotKind::Identifier,
+                extract_hint: Some("Default to primary checking."),
+                inferable: true,
+            },
+        ],
+    },
+    ToolSpec {
+        canonical_name: "goals.contribute",
+        mutating: true,
+        default_tier: "Yellow",
+        arguments_schema: json!({
+            "type": "object",
+            "required": ["goal_id", "amount_fen", "source_account_id"],
+            "properties": {
+                "goal_id": {"type": "string"},
+                "amount_fen": {"type": "integer", "minimum": 100},
+                "source_account_id": {"type": "string"},
+                "memo": {"type": "string", "maxLength": 200}
+            }
+        }),
+        required_slots: &[
+            SlotSpec {
+                name: "goal_id",
+                question: "Which goal?",
+                kind: SlotKind::Identifier,
+                extract_hint: None,
+                inferable: true,
+            },
+            SlotSpec {
+                name: "amount_fen",
+                question: "How much?",
+                kind: SlotKind::AmountFen,
+                extract_hint: None,
+                inferable: true,
+            },
+            SlotSpec {
+                name: "source_account_id",
+                question: "From which account?",
+                kind: SlotKind::Identifier,
+                extract_hint: Some("Default to primary checking."),
+                inferable: true,
+            },
+        ],
+        optional_slots: &[],
+    },
 ]);
 
 #[cfg(test)]

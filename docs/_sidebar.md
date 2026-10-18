@@ -7,7 +7,25 @@
 
 - [Home](/)
 - **Foundations**
-  - [Architecture](ARCHITECTURE.md)
+  - [Architecture (legacy single file)](ARCHITECTURE.md)
+  - **Architecture (bilingual tree)** *(new)*
+    - [Overview](architecture/README.md)
+    - [0 · System Overview](architecture/00-system-overview.md)
+    - [1 · Request Lifecycle](architecture/01-request-lifecycle.md)
+    - [2 · Data Model](architecture/02-data-model.md)
+    - [3 · Core Algorithms](architecture/03-algorithms.md)
+    - [4 · Frontend](architecture/04-frontend.md)
+    - [5 · Deployment](architecture/05-deployment.md)
+    - [6 · Security Design](architecture/06-security-design.md)
+    - **架构总览 (中文)**
+      - [架构总览](architecture/zh/README.md)
+      - [0 · 系统总览](architecture/zh/00-system-overview.md)
+      - [1 · 请求生命周期](architecture/zh/01-request-lifecycle.md)
+      - [2 · 数据模型](architecture/zh/02-data-model.md)
+      - [3 · 核心算法](architecture/zh/03-algorithms.md)
+      - [4 · 前端](architecture/zh/04-frontend.md)
+      - [5 · 部署](architecture/zh/05-deployment.md)
+      - [6 · 安全设计](architecture/zh/06-security-design.md)
   - [Data Model](DATA_MODEL.md)
   - [API Reference](API.md)
   - [Policy Engine](POLICY.md)
@@ -22,6 +40,7 @@
     - [4 · Known Risks (R-1…R-15)](self-assessment/04-known-risks.md)
     - [5 · Non-Claims](self-assessment/05-non-claims.md)
     - [6 · Code Map](self-assessment/06-code-map.md)
+    - [7 · Banking & API Safety](self-assessment/07-banking-api-safety.md)
     - **中文附录**
       - [总览](self-assessment/zh/README.md)
       - [0 · 范围](self-assessment/zh/00-scope.md)
@@ -31,5 +50,18 @@
       - [4 · 已知风险](self-assessment/zh/04-known-risks.md)
       - [5 · 未声称](self-assessment/zh/05-non-claims.md)
       - [6 · 代码索引](self-assessment/zh/06-code-map.md)
+      - [7 · 银行与 API 安全](self-assessment/zh/07-banking-api-safety.md)
+- **Operations & Testing** *(new)*
+  - [Overview](operations/README.md)
+  - [0 · Deployment](operations/00-deployment.md)
+  - [1 · Troubleshooting](operations/01-troubleshooting.md)
+  - [2 · Test Cases](operations/02-test-cases.md)
+  - [3 · CI](operations/03-ci.md)
+  - **运维与测试 (中文)**
+    - [总览](operations/zh/README.md)
+    - [0 · 部署](operations/zh/00-deployment.md)
+    - [1 · 故障排查](operations/zh/01-troubleshooting.md)
+    - [2 · 测试用例](operations/zh/02-test-cases.md)
+    - [3 · 持续集成](operations/zh/03-ci.md)
 - **Agent & Demos**
   - [Scenarios](SCENARIOS.md)

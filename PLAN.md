@@ -1,7 +1,7 @@
-# BankPilot — Master Plan
+# FinTech Pioneers — Master Plan
 
 > **Status:** Plan, awaiting Build.
-> **Spec source:** `BankPilot_Project_Details_and_Feature_Specification.docx` (v1.0, 16 Oct 2026).
+> **Spec source:** `FinTech Pioneers_Project_Details_and_Feature_Specification.docx` (v1.0, 16 Oct 2026).
 > **Tagline:** "AI may propose and explain, but it must not grant itself financial authority."
 
 ---
@@ -10,7 +10,7 @@
 
 | | |
 |---|---|
-| **Name** | BankPilot (智银助手) |
+| **Name** | FinTech Pioneers (智银助手) |
 | **Type** | AI agent / fintech prototype / competition submission |
 | **Mode** | Simulation only — no real bank accounts, no real payment rails |
 | **Stack** | Rust + Actix Web · PostgreSQL (Coolify) · Next.js 14 + TypeScript + Tailwind · OpenAI-compatible LLM |

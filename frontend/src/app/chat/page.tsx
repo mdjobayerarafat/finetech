@@ -29,6 +29,8 @@ import { ConfirmationCard } from "@/components/confirmation-card";
 import { FadeIn, AuroraBackdrop } from "@/components/motion/aurora";
 import { useLanguage, useT } from "@/i18n/LanguageProvider";
 import { useTranslated } from "@/i18n/use-translate";
+import { usePageTitle } from "@/lib/use-page-title";
+import { PendingWorkflowsPanel } from "@/components/chat/pending-workflows-panel";
 import { cn, fenToCny } from "@/lib/utils";
 
 type ChatMessage = {
@@ -67,6 +69,7 @@ function ChatBody() {
   const { me } = useAuth();
   const { lang } = useLanguage();
   const t = useT();
+  usePageTitle("meta.chat.title", "Assistant");
   // The server should always answer in the user's selected language, so we
   // forward `lang` to every chat call. The backend's stub / LLM then uses
   // that hint to decide the response language.
@@ -289,6 +292,15 @@ function ChatBody() {
         <ShieldCheck className="mr-1 inline size-3" />
         {t("chat.disclaimer")}
       </p>
+
+      <PendingWorkflowsPanel
+        refreshKey={messages.length}
+        onOpenInChat={() => {
+          // The chat card is already on this page; nudge focus back to the
+          // input so the user can type a follow-up after Resume.
+          requestAnimationFrame(() => taRef.current?.focus());
+        }}
+      />
     </div>
   );
 }

@@ -23,6 +23,7 @@ import { agent, ApiError } from "@/lib/api";
 import { ConfirmationCard } from "@/components/confirmation-card";
 import { cnyToFen, fenToCny, cn } from "@/lib/utils";
 import { useT, useLanguage } from "@/i18n/LanguageProvider";
+import { usePageTitle } from "@/lib/use-page-title";
 
 export default function ReceiptPage() {
   return (
@@ -42,6 +43,7 @@ const SAMPLE_FILENAMES = [
 
 function Body() {
   const t = useT();
+  usePageTitle("meta.receipt.title", "Receipt scan");
   const { lang } = useLanguage();
   const [filename, setFilename] = useState<string>(SAMPLE_FILENAMES[0]);
   const [merchantHint, setMerchantHint] = useState<string>("");

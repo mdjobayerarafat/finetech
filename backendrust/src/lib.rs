@@ -1,6 +1,7 @@
 //! Library root for the BankPilot backend.
 
 pub mod agent_rules;
+pub mod agent_v3;
 pub mod audit;
 pub mod canonical;
 pub mod config;

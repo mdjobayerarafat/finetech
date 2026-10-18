@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/motion/aurora";
 import { useT } from "@/i18n/LanguageProvider";
+import { usePageTitle } from "@/lib/use-page-title";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
@@ -216,6 +217,7 @@ export default function DocsPage() {
 
 function Body() {
   const t = useT();
+  usePageTitle("meta.docs.title", "Docs");
   const { toast } = useToast();
   const [filter, setFilter] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);

@@ -25,6 +25,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                 .configure(features::configure)
                 .configure(smart_transfers::configure)
                 .configure(util::configure)
+                .configure(agent_v3_routes::configure)
                 .route("/docs", web::get().to(|| async {
                     HttpResponse::Ok().json(json!({
                         "message": "BankPilot API docs are available in the FastAPI version at /api/v1/docs.",
@@ -60,4 +61,5 @@ pub mod actions;
 pub mod admin;
 pub mod features;
 pub mod smart_transfers;
+pub mod agent_v3_routes;
 pub mod util;

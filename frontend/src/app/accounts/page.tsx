@@ -8,6 +8,7 @@ import {
   BarChart3,
   Calendar,
   Lightbulb,
+  Loader2,
   PiggyBank,
   Plus,
   Search,
@@ -27,6 +28,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import {
   accounts,
@@ -34,7 +37,10 @@ import {
   reports,
   smart,
   transactions,
+  transactionsV3,
+  friendlyError,
   type Account,
+  type ApiError,
   type Anomaly,
   type Budget as BudgetRow,
   type BudgetSummary,
@@ -50,6 +56,7 @@ import { fenToCny, formatDate, formatDateTime } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { useAccountsBusTick } from "@/lib/store";
 import { useT } from "@/i18n/LanguageProvider";
+import { usePageTitle } from "@/lib/use-page-title";
 import {
   Cell,
   Pie,
@@ -263,6 +270,9 @@ function Body() {
 
       {/* --- Beneficial accounts directory ------------------------------ */}
       <BeneficialAccountsSection />
+
+      {/* --- Agent v3: search transactions + merchant history + dispute draft (1.3) -- */}
+      <AgentTransactionSearch />
 
       {/* --- Cost management: budgets --------------------------------- */}
       <BudgetsSection />
@@ -1058,6 +1068,7 @@ type BeneficialRow = {
 
 function BeneficialAccountsSection() {
   const t = useT();
+  usePageTitle("meta.accounts.title", "Accounts");
   const accountsTick = useAccountsBusTick();
   const { toast } = useToast();
   const [rows, setRows] = useState<BeneficialRow[]>([]);
@@ -1493,6 +1504,225 @@ function BudgetsSection() {
           </CardContent>
         </Card>
       </FadeIn>
+    </section>
+  );
+}
+
+// =====================================================================
+// Agent v3: search transactions + merchant history + dispute draft (1.3)
+// =====================================================================
+//
+// Free-text search across the user's ledger (merchant, memo, amount).
+// Each row shows inline controls to drill into the merchant's full
+// history (per-merchant average + last 6 months) and to draft a
+// dispute (writes to the audit log + returns a draft id for the
+// confirmation card).
+
+function AgentTransactionSearch() {
+  const t = useT();
+  const { toast } = useToast();
+  type SearchItem = Awaited<ReturnType<typeof transactionsV3.search>>["items"][number];
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<SearchItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [merchant, setMerchant] = useState<{
+    merchant: string;
+    average_fen: number;
+    count: number;
+    months: number;
+    recent: { id: string; amount_fen: number; memo: string; occurred_at: string }[];
+  } | null>(null);
+  const [disputeOf, setDisputeOf] = useState<SearchItem | null>(null);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const runSearch = async () => {
+    const query = q.trim();
+    if (!query) {
+      setResults([]);
+      setMerchant(null);
+      return;
+    }
+    setLoading(true);
+    try {
+      const r = await transactionsV3.search(query, { limit: 25 });
+      setResults(r.items);
+      setMerchant(null);
+    } catch (e) {
+      const fe = friendlyError(e as ApiError);
+      toast({ variant: "error", title: fe.title, description: fe.body });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openMerchant = async (m: string) => {
+    setBusy(true);
+    try {
+      const r = await transactionsV3.merchantHistory(m);
+      setMerchant(r);
+    } catch (e) {
+      const fe = friendlyError(e as ApiError);
+      toast({ variant: "error", title: fe.title, description: fe.body });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitDispute = async () => {
+    if (!disputeOf) return;
+    setBusy(true);
+    try {
+      const out = await transactionsV3.disputeDraft(disputeOf.id, disputeReason);
+      toast({
+        variant: "success",
+        title: t("agent.transactions.dispute.drafted"),
+        description: t("agent.transactions.dispute.id_fmt", { id: out.transaction_id }),
+      });
+      setDisputeOf(null);
+      setDisputeReason("");
+    } catch (e) {
+      const fe = friendlyError(e as ApiError);
+      toast({ variant: "error", title: fe.title, description: fe.body });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="space-y-4">
+      <SectionTitle icon={<Search className="size-4" />} title={t("agent.transactions.search.title")} subtitle={t("agent.transactions.search.subtitle")} />
+      <FadeIn>
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }}
+                placeholder={t("agent.transactions.search.placeholder")}
+                className="flex-1 min-w-[240px]"
+              />
+              <Button onClick={runSearch} disabled={loading || !q.trim()}>
+                {loading ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
+                {t("agent.transactions.search.run")}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" /> {t("agent.transactions.search.running")}
+              </div>
+            ) : results.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {q.trim() ? t("agent.transactions.search.no_results") : t("agent.transactions.search.try")}
+              </p>
+            ) : (
+              <ul className="divide-y divide-white/5">
+                {results.map((r) => (
+                  <li key={r.id} className="flex flex-wrap items-center gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium tabular-nums">{fenToCny(Math.abs(r.amount_fen))}</span>
+                        <Badge variant={r.direction === "credit" ? "muted" : "default"}>{r.category}</Badge>
+                      </div>
+                      {(r.merchant || r.memo) && (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {[r.merchant, r.memo].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                      <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {formatDateTime(r.occurred_at)} · {r.id}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {r.merchant && (
+                        <Button size="sm" variant="outline" disabled={busy} onClick={() => openMerchant(r.merchant!)}>
+                          {t("agent.transactions.search.merchant_history")} {r.merchant}
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => setDisputeOf(r)}>
+                        {t("agent.transactions.dispute")}
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </FadeIn>
+
+      {merchant && (
+        <FadeIn>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="size-4 text-primary" />
+                {t("agent.transactions.search.merchant_history")} {merchant.merchant}
+              </CardTitle>
+              <CardDescription>
+                {t("agent.transactions.search.merchant_summary", {
+                  count: merchant.count,
+                  months: merchant.months,
+                  avg: fenToCny(merchant.average_fen),
+                })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="divide-y divide-white/5">
+                {merchant.recent.map((r) => (
+                  <li key={r.id} className="flex items-center gap-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm">{r.memo || "—"}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{formatDateTime(r.occurred_at)}</p>
+                    </div>
+                    <span className="font-medium tabular-nums">{fenToCny(Math.abs(r.amount_fen))}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </FadeIn>
+      )}
+
+      <Dialog open={!!disputeOf} onOpenChange={(o) => { if (!o) { setDisputeOf(null); setDisputeReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="size-4 text-primary" />
+              {t("agent.transactions.dispute")}
+            </DialogTitle>
+            <DialogDescription>
+              {disputeOf && (
+                <>
+                  {fenToCny(Math.abs(disputeOf.amount_fen))} · {[disputeOf.merchant, disputeOf.memo].filter(Boolean).join(" · ")}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label htmlFor="dispute-reason">{t("agent.transactions.dispute.reason")}</Label>
+            <Textarea
+              id="dispute-reason"
+              value={disputeReason}
+              onChange={(e) => setDisputeReason(e.target.value)}
+              placeholder={t("agent.transactions.dispute.reason_ph")}
+              rows={3}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => { setDisputeOf(null); setDisputeReason(""); }} disabled={busy}>
+                {t("form.cancel")}
+              </Button>
+              <Button onClick={submitDispute} disabled={busy || !disputeReason.trim()}>
+                {busy ? <Loader2 className="size-4 animate-spin" /> : <ShieldAlert className="size-4" />}
+                {t("agent.transactions.dispute.submit")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

@@ -324,6 +324,17 @@ export const payees = {
   list: () => request<Payee[]>(`/payees`),
   create: (body: { display_name: string; phone_tail?: string }) =>
     request<Payee>(`/payees`, { method: "POST", body: JSON.stringify(body) }),
+  // v3
+  mergeDuplicates: (keep_id: string, merge_id: string) =>
+    request<{ kept_payee_id: string; merged_payee_id: string; transfers_rewritten: number }>(
+      `/payees/merge-duplicates`,
+      { method: "POST", body: JSON.stringify({ keep_id, merge_id }) },
+    ),
+  startVerification: (id: string, challenge_fen: number) =>
+    request<{ verification_id: string; payee_id: string; challenge_fen: number; expires_at: string; demo_code: string }>(
+      `/payees/${id}/verify`,
+      { method: "POST", body: JSON.stringify({ challenge_fen }) },
+    ),
 };
 
 export type TransferPreview = {
@@ -347,6 +358,20 @@ export const transfers = {
   create: (body: { recipient_query?: string; payee_id?: string; phone_tail?: string; amount: string | number; memo?: string; account_id?: string }) =>
     request<TransferCreateOut>(`/transfers`, { method: "POST", body: JSON.stringify(body) }),
   list: () => request<unknown[]>(`/transfers`),
+  cancel: (id: string) =>
+    request<{ transfer_id: string; status: string }>(`/transfers/${id}/cancel`, { method: "POST" }),
+  // v3
+  getStatus: (id: string) =>
+    request<{
+      id: string; status: string; amount_fen: number; memo: string;
+      schedule: string | null; created_at: string; posted_at: string | null;
+      reversible: boolean;
+    }>(`/transfers/${id}/status`),
+  reverse: (id: string, reason: string) =>
+    request<{ pending_action_id: string; risk_tier: string; expires_at: string; next_step: string; mock_mfa_code: string }>(
+      `/transfers/${id}/reverse`,
+      { method: "POST", body: JSON.stringify({ reason }) },
+    ),
 };
 
 // --- Smart transfer agent --------------------------------------------------
@@ -616,6 +641,19 @@ export const subscriptions = {
     request<Reminder>(`/subscriptions/${id}/remind?days_before=${days_before}`, { method: "POST" }),
   cancel: (id: string) =>
     request<{ subscription_id: string; status: string }>(`/subscriptions/${id}/cancel`, { method: "POST" }),
+  // v3 — close-the-loop
+  snooze: (id: string, days: number) =>
+    request<{ id: string; merchant: string; next_expected_at: string; snooze_until: string }>(
+      `/subscriptions/${id}/snooze`,
+      { method: "POST", body: JSON.stringify({ days }) },
+    ),
+  defer: (id: string, reason = "") =>
+    request<{ id: string; merchant: string; previous_expected_at: string; new_next_expected_at: string }>(
+      `/subscriptions/${id}/defer`,
+      { method: "POST", body: JSON.stringify({ reason }) },
+    ),
+  uncancel: (id: string) =>
+    request<{ id: string; status: string }>(`/subscriptions/${id}/uncancel`, { method: "POST" }),
 };
 export const reminders = {
   list: () => request<Reminder[]>(`/reminders`),
@@ -1171,3 +1209,197 @@ export const adminConversationsApi = {
   detail: (id: string) =>
     request<AdminConversationDetail>(`/admin/conversations/${id}`),
 };
+
+// --- Agent v3 — close-the-loop, plan-persistence, proactive intelligence ----
+
+export type DigestRenewal = {
+  id: string;
+  merchant: string;
+  amount_fen: number;
+  next_expected_at: string;
+};
+export type DigestGoal = {
+  id: string;
+  name: string;
+  target_fen: number;
+  this_week_fen: number;
+  progress_pct: number;
+};
+export type DailyDigest = {
+  generated_at: string;
+  items: {
+    renewals: DigestRenewal[];
+    goals: DigestGoal[];
+    anomaly_count_24h: number;
+    spend_24h_fen: number;
+    pending_workflows: number;
+  };
+  hash: string;
+};
+
+export const insights = {
+  daily: () => request<DailyDigest>(`/insights/daily`),
+  ack: () => request<DailyDigest>(`/insights/daily/ack`, { method: "POST" }),
+};
+
+export type PendingWorkflow = {
+  workflow_id: string;
+  title: string;
+  created_at: string;
+  status: string;
+};
+
+export const workflows = {
+  pending: () =>
+    request<{ items: PendingWorkflow[]; count: number }>(`/workflows-pending`),
+  resume: (id: string) =>
+    request<{
+      workflow_id: string;
+      status: string;
+      next_pending_action: { id: string; tool: string; expires_at: string } | null;
+    }>(`/workflows/${id}/resume`, { method: "POST" }),
+};
+
+export const actions = {
+  defer: (id: string, minutes: number) =>
+    request<{ pending_action_id: string; new_expires_at: string }>(
+      `/actions/${id}/defer`,
+      { method: "POST", body: JSON.stringify({ minutes }) },
+    ),
+};
+
+export type TransactionRow = {
+  id: string;
+  account_id: string;
+  amount_fen: number;
+  category: string;
+  occurred_at: string;
+  memo: string;
+  merchant?: string;
+  direction: "credit" | "debit";
+};
+
+export const transactionsV3 = {
+  search: (query: string, opts?: { from?: string; to?: string; min_amount_fen?: number; max_amount_fen?: number; category?: string; limit?: number }) => {
+    const params = new URLSearchParams({ query });
+    if (opts?.from) params.set("from", opts.from);
+    if (opts?.to) params.set("to", opts.to);
+    if (opts?.min_amount_fen != null) params.set("min_amount_fen", String(opts.min_amount_fen));
+    if (opts?.max_amount_fen != null) params.set("max_amount_fen", String(opts.max_amount_fen));
+    if (opts?.category) params.set("category", opts.category);
+    if (opts?.limit != null) params.set("limit", String(opts.limit));
+    return request<{ items: TransactionRow[]; count: number }>(`/transactions/search?${params.toString()}`);
+  },
+  merchantHistory: (merchant: string) =>
+    request<{
+      merchant: string; months: number; count: number; total_fen: number;
+      average_fen: number; recent: TransactionRow[];
+    }>(`/transactions/merchant/${encodeURIComponent(merchant)}/history`),
+  disputeDraft: (id: string, reason: string) =>
+    request<{
+      transaction_id: string;
+      dispute_status: string;
+      draft: string;
+      // Convenience: backend embeds the dispute reference id in the draft text
+      // (e.g. "Reference: dispute-<id>"). Surfacing it lets the UI toast a
+      // short, scannable id without re-parsing.
+      reference_id?: string;
+    }>(
+      `/transactions/${id}/dispute-draft`,
+      { method: "POST", body: JSON.stringify({ reason }) },
+    ),
+};
+
+export type GoalProgress = {
+  id: string;
+  name: string;
+  target_fen: number;
+  saved_fen: number;
+  this_month_fen: number;
+  progress_pct: number;
+  daily_pace_fen: number;
+  days_to_goal: number | null;
+};
+
+export const goals = {
+  list: () =>
+    request<{
+      items: GoalProgress[];
+      count: number;
+    }>(`/goals`),
+  progress: (id: string) => request<GoalProgress>(`/goals/${id}/progress`),
+  rebalance: (id: string, monthly_amount_fen: number, source_account_id?: string) =>
+    request<{
+      goal_id: string; name: string; saved_fen: number; target_fen: number;
+      remaining_fen: number; monthly_amount_fen: number; months_to_goal: number | null;
+      note: string;
+    }>(`/goals/${id}/rebalance`, {
+      method: "POST",
+      body: JSON.stringify({ monthly_amount_fen, source_account_id }),
+    }),
+  contribute: (id: string, amount_fen: number, source_account_id: string, memo = "") =>
+    request<{ id: string; goal_id: string; amount_fen: number; new_balance_fen: number }>(
+      `/goals/${id}/contribute`,
+      { method: "POST", body: JSON.stringify({ amount_fen, source_account_id, memo }) },
+    ),
+};
+
+// --- Layer 5.5 — friendly error mapper ---------------------------------------
+//
+// Translate machine `code` values into the user-facing "what to do next" copy
+// the chat surface renders in its error toast. Falls back to the raw message
+// when the code is unknown.
+
+export type FriendlyError = {
+  title: string;
+  body: string;
+  action?: { label: string; href?: string };
+};
+
+export function friendlyError(err: ApiError): FriendlyError {
+  const d = (err.details ?? {}) as Record<string, unknown>;
+  const whatNext = typeof d.what_next === "string" ? (d.what_next as string) : null;
+  const question = typeof d.question === "string" ? (d.question as string) : null;
+  switch (err.code) {
+    case "insufficient_funds":
+      return {
+        title: "Not enough in this account",
+        body: whatNext ?? "Top up, pick a different source, or reduce the amount.",
+        action: { label: "Open accounts", href: "/accounts" },
+      };
+    case "below_minimum":
+      return {
+        title: "Amount is below the minimum",
+        body: whatNext ?? "Try a higher amount, or pick a different goal.",
+      };
+    case "clarification_required":
+      return {
+        title: "One more thing",
+        body: question ?? "The agent needs more information to continue.",
+      };
+    case "forbidden":
+      return {
+        title: "Blocked by an admin rule",
+        body: whatNext ?? err.message,
+        action: { label: "Open chat", href: "/chat" },
+      };
+    case "schema_invalid":
+      return { title: "Check the input", body: whatNext ?? err.message };
+    case "not_found":
+      return { title: "Couldn't find it", body: err.message };
+    case "mfa_required":
+    case "mfa_failed":
+      return {
+        title: err.code === "mfa_failed" ? "That code didn't match" : "MFA required",
+        body: err.message,
+        action: { label: "Open the action", href: "/chat" },
+      };
+    case "expired":
+      return { title: "This expired", body: "Open the chat to start a new confirmation." };
+    case "parameter_changed":
+      return { title: "The parameters changed", body: "Please re-confirm with the new values." };
+    default:
+      return { title: "Something went wrong", body: err.message };
+  }
+}
+

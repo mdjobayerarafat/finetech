@@ -23,6 +23,7 @@ import { TierBadge } from "@/components/motion/tier-badge";
 import { ConfirmationCard } from "@/components/confirmation-card";
 import { cn } from "@/lib/utils";
 import { useT, useLanguage } from "@/i18n/LanguageProvider";
+import { usePageTitle } from "@/lib/use-page-title";
 
 declare global {
   interface Window {
@@ -57,6 +58,7 @@ type Conversation = {
 
 function Body() {
   const t = useT();
+  usePageTitle("meta.voice.title", "Voice");
   const { lang: uiLang } = useLanguage();
   const [language, setLanguage] = useState<"zh" | "en" | "mixed">(uiLang === "zh" ? "zh" : "mixed");
   const [transcript, setTranscript] = useState<string>("");

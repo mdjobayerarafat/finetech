@@ -1,8 +1,8 @@
-# BankPilot
+# FinTech Pioneers
 
 > Secure, multilingual AI banking agent — simulation only, no real money.
 
-BankPilot helps users express everyday financial intent in **English, Chinese, or mixed input** and turns it into a structured, server-checked plan. The language model proposes; a deterministic policy engine authorises; the backend executes; an append-only audit log records everything.
+FinTech Pioneers helps users express everyday financial intent in **English, Chinese, or mixed input** and turns it into a structured, server-checked plan. The language model proposes; a deterministic policy engine authorises; the backend executes; an append-only audit log records everything.
 
 > ⚠️ **Simulation only — no real bank accounts, no real payments.** Every screen and demo surface says so.
 
@@ -11,7 +11,8 @@ BankPilot helps users express everyday financial intent in **English, Chinese, o
 | | |
 |---|---|
 | [PLAN.md](./PLAN.md) | Master plan and phase index |
-| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Component map, request lifecycle, deployment |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Legacy single-file architecture note (kept for history) |
+| **[docs/architecture/](./docs/architecture/README.md)** | **Bilingual architecture tree** *(new — supersedes the legacy single file for new work)*. System overview, request lifecycle, data model, core algorithms, frontend, deployment, security design. Includes Mermaid `flowchart`, `sequenceDiagram`, `stateDiagram-v2`, and `erDiagram`. [中文镜像 →](./docs/architecture/zh/README.md) |
 | [docs/DATA_MODEL.md](./docs/DATA_MODEL.md) | Entities, schema, money handling |
 | [docs/API.md](./docs/API.md) | REST endpoints, request/response schemas |
 | [docs/POLICY.md](./docs/POLICY.md) | Green / Yellow / Red engine, escalation |
@@ -21,6 +22,7 @@ BankPilot helps users express everyday financial intent in **English, Chinese, o
 | [docs/AGENT_PIPELINE.md](./docs/AGENT_PIPELINE.md) | Intent → slots → DAG → execution |
 | [docs/DEMO_SCRIPT.md](./docs/DEMO_SCRIPT.md) | 5-minute walkthrough for judges |
 | [docs/TESTING.md](./docs/TESTING.md) | Functional + security test plan |
+| **[docs/operations/](./docs/operations/README.md)** | **Deployment + tests** *(new)*. Production topology, systemd + nginx units, Postgres ops, backups, upgrade & rollback, troubleshooting, all 39 unit tests enumerated, manual integration checklist, red-team scenarios, smoke script, coverage gaps, recommended CI pipeline. [中文镜像 →](./docs/operations/zh/README.md) |
 | [docs/ROADMAP.md](./docs/ROADMAP.md) | 7-phase build order, exit criteria |
 | [docs/THREAT_MODEL.md](./docs/THREAT_MODEL.md) | STRIDE-style analysis, mitigations |
 

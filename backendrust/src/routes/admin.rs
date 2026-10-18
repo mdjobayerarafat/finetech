@@ -80,20 +80,34 @@ async fn list_audit(
 ) -> Result<HttpResponse, ApiError> {
     let user = auth.0;
     let q = q.into_inner();
+    // Postgres-bind positional placeholders ($1, $2, ...). The prior `?` form
+    // caused a 500 because sqlx forwarded the literal `?` to Postgres, which
+    // does not understand MySQL-style binds. Mirrors the fix in
+    // `routes/payees.rs::list_transfers`.
+    //
+    // We track the placeholder index and increment *before* each clause so it
+    // stays in lock-step with the order of the subsequent `.bind()` calls.
     let mut sql = String::from("SELECT * FROM audit_events WHERE 1=1");
+    let mut next_idx: i32 = 0;
+    macro_rules! bump {
+        () => {{
+            next_idx += 1;
+            next_idx
+        }};
+    }
     if user.role != "admin" {
-        sql.push_str(" AND actor_user_id = ?");
+        sql.push_str(&format!(" AND actor_user_id = ${}", bump!()));
     }
     if q.from.is_some() {
-        sql.push_str(" AND created_at >= ?");
+        sql.push_str(&format!(" AND created_at >= ${}", bump!()));
     }
     if q.to.is_some() {
-        sql.push_str(" AND created_at <= ?");
+        sql.push_str(&format!(" AND created_at <= ${}", bump!()));
     }
     if q.action.is_some() {
-        sql.push_str(" AND action = ?");
+        sql.push_str(&format!(" AND action = ${}", bump!()));
     }
-    sql.push_str(" ORDER BY created_at DESC LIMIT ?");
+    sql.push_str(&format!(" ORDER BY created_at DESC LIMIT ${}", bump!()));
     let mut query = sqlx::query_as::<_, AuditEvent>(&sql);
     if user.role != "admin" {
         query = query.bind(&user.id);

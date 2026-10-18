@@ -31,6 +31,7 @@ import { forecast, type ForecastOut, type ForecastPoint } from "@/lib/api";
 import { FadeIn, Stagger, StaggerItem, AuroraBackdrop } from "@/components/motion/aurora";
 import { cn, fenToCny } from "@/lib/utils";
 import { useT, useLanguage } from "@/i18n/LanguageProvider";
+import { usePageTitle } from "@/lib/use-page-title";
 import { useTranslated } from "@/i18n/use-translate";
 
 const PRESETS: { label: string; amount: number; months: number; spend_month: number }[] = [
@@ -50,6 +51,7 @@ export default function ForecastPage() {
 
 function Body() {
   const t = useT();
+  usePageTitle("meta.forecast.title", "Forecast");
   const [amountCny, setAmountCny] = useState<string>("6000");
   const [months, setMonths] = useState<number>(12);
   const [spendMonth, setSpendMonth] = useState<number>(11);

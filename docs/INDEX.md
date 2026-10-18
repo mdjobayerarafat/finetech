@@ -5,8 +5,27 @@
 
 ## Foundations
 
-- [Architecture](./ARCHITECTURE.md) — component map, request
-  lifecycles, deployment topology.
+- [Architecture (legacy single file)](./ARCHITECTURE.md) —
+  component map, request lifecycles, deployment topology.
+- **Architecture (bilingual tree)** *(new — supersedes the legacy
+  single file for new work)*:
+  - [Overview](./architecture/README.md)
+  - [0 · System Overview](./architecture/00-system-overview.md)
+  - [1 · Request Lifecycle](./architecture/01-request-lifecycle.md)
+  - [2 · Data Model](./architecture/02-data-model.md)
+  - [3 · Core Algorithms](./architecture/03-algorithms.md)
+  - [4 · Frontend](./architecture/04-frontend.md)
+  - [5 · Deployment](./architecture/05-deployment.md)
+  - [6 · Security Design](./architecture/06-security-design.md)
+  - **架构总览 (中文)**:
+    - [架构总览](./architecture/zh/README.md)
+    - [0 · 系统总览](./architecture/zh/00-system-overview.md)
+    - [1 · 请求生命周期](./architecture/zh/01-request-lifecycle.md)
+    - [2 · 数据模型](./architecture/zh/02-data-model.md)
+    - [3 · 核心算法](./architecture/zh/03-algorithms.md)
+    - [4 · 前端](./architecture/zh/04-frontend.md)
+    - [5 · 部署](./architecture/zh/05-deployment.md)
+    - [6 · 安全设计](./architecture/zh/06-security-design.md)
 - [Data Model](./DATA_MODEL.md) — entities, schema, money handling
   rules.
 - [API Reference](./API.md) — REST endpoints, request/response
@@ -39,7 +58,26 @@
 
 ## Agent & Demos
 
-- [Scenarios](./SCENARIOS.md) — the 6 user scenarios, demo prompts.
+- [Scenarios](./SCENARIOS.md) — the 6 user scenarios, demo
+  prompts.
+- **Operations & Testing** *(new — deployment + tests)*:
+  - [Overview](./operations/README.md)
+  - [0 · Deployment](./operations/00-deployment.md) — production
+    topology, systemd units, reverse proxy, Postgres ops, backups,
+    upgrade & rollback, log rotation.
+  - [1 · Troubleshooting](./operations/01-troubleshooting.md) —
+    symptom → log line → recovery.
+  - [2 · Test Cases](./operations/02-test-cases.md) — 39 unit
+    tests enumerated, manual integration checklist, red-team
+    scenarios, smoke script, coverage gaps.
+  - [3 · CI](./operations/03-ci.md) — recommended GitHub Actions
+    pipeline (none today); PR gates, smoke job on `main`.
+  - **运维与测试 (中文)**:
+    - [总览](./operations/zh/README.md)
+    - [0 · 部署](./operations/zh/00-deployment.md)
+    - [1 · 故障排查](./operations/zh/01-troubleshooting.md)
+    - [2 · 测试用例](./operations/zh/02-test-cases.md)
+    - [3 · 持续集成](./operations/zh/03-ci.md)
 
 ## Top-level
 
@@ -57,7 +95,25 @@ docs/
 ├── INDEX.md                       ← this file
 ├── _sidebar.md                    ← sidebar for SSG importers
 │
-├── ARCHITECTURE.md                ← foundations
+├── ARCHITECTURE.md                ← foundations (legacy single file)
+├── architecture/                  ← bilingual architecture tree
+│   ├── README.md                  ← landing for the tree
+│   ├── 00-system-overview.md
+│   ├── 01-request-lifecycle.md
+│   ├── 02-data-model.md
+│   ├── 03-algorithms.md
+│   ├── 04-frontend.md
+│   ├── 05-deployment.md
+│   ├── 06-security-design.md
+│   └── zh/                        ← 中文镜像,7 页
+│       ├── README.md
+│       ├── 00-system-overview.md
+│       ├── 01-request-lifecycle.md
+│       ├── 02-data-model.md
+│       ├── 03-algorithms.md
+│       ├── 04-frontend.md
+│       ├── 05-deployment.md
+│       └── 06-security-design.md
 ├── DATA_MODEL.md
 ├── API.md
 ├── POLICY.md
@@ -73,7 +129,8 @@ docs/
 │   ├── 04-known-risks.md
 │   ├── 05-non-claims.md
 │   ├── 06-code-map.md
-│   └── zh/                        ← 中文镜像,同样 7 页
+│   ├── 07-banking-api-safety.md
+│   └── zh/                        ← 中文镜像,8 页
 │       ├── README.md
 │       ├── 00-scope.md
 │       ├── 01-permission-tiers.md
@@ -81,7 +138,21 @@ docs/
 │       ├── 03-llm-safety.md
 │       ├── 04-known-risks.md
 │       ├── 05-non-claims.md
-│       └── 06-code-map.md
+│       ├── 06-code-map.md
+│       └── 07-banking-api-safety.md
+│
+├── operations/                    ← deployment + tests (bilingual)
+│   ├── README.md
+│   ├── 00-deployment.md
+│   ├── 01-troubleshooting.md
+│   ├── 02-test-cases.md
+│   ├── 03-ci.md
+│   └── zh/                        ← 中文镜像,5 页
+│       ├── README.md
+│       ├── 00-deployment.md
+│       ├── 01-troubleshooting.md
+│       ├── 02-test-cases.md
+│       └── 03-ci.md
 │
 └── SCENARIOS.md                   ← demo prompts
 ```

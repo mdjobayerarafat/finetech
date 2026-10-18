@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   Clock,
+  ListChecks as ActivityIcon,
   Loader2,
   Plus,
   Receipt,
@@ -19,6 +20,7 @@ import {
   Sparkles,
   Split,
   Trash2,
+  Undo2,
   UserPlus,
   Users,
   Wallet,
@@ -37,7 +39,10 @@ import {
   smart,
   splitBills,
   accounts,
+  transfers,
+  friendlyError,
   type Account,
+  type ApiError,
   type Payee,
   type PayeeSuggestion,
   type SecurityReview,
@@ -50,9 +55,10 @@ import { TierBadge } from "@/components/motion/tier-badge";
 import { cn, cnyToFen, fenToCny, formatDateTime, relativeTime } from "@/lib/utils";
 import { accountsBusApi } from "@/lib/store";
 import { useT } from "@/i18n/LanguageProvider";
+import { usePageTitle } from "@/lib/use-page-title";
 import { ConfirmationCard } from "@/components/confirmation-card";
 
-type Tab = "pay" | "schedule" | "splits";
+type Tab = "pay" | "schedule" | "splits" | "activity";
 
 export default function SmartTransfersPage() {
   return (
@@ -90,12 +96,15 @@ function Body() {
         <TabButton active={tab === "schedule"} onClick={() => setTab("schedule")} icon={<Calendar className="size-3.5" />}>
           Scheduled
         </TabButton>
+        <TabButton active={tab === "activity"} onClick={() => setTab("activity")} icon={<ActivityIcon className="size-3.5" />}>
+          Activity
+        </TabButton>
         <TabButton active={tab === "splits"} onClick={() => setTab("splits")} icon={<Split className="size-3.5" />}>
           Split a bill
         </TabButton>
       </div>
 
-      {tab === "pay" ? <PayTab /> : tab === "schedule" ? <ScheduleTab /> : <SplitsTab />}
+      {tab === "pay" ? <PayTab /> : tab === "schedule" ? <ScheduleTab /> : tab === "activity" ? <ActivityTab /> : <SplitsTab />}
     </div>
   );
 }
@@ -153,6 +162,7 @@ function PayTab() {
     riskTier: "Green" | "Yellow" | "Red";
   } | null>(null);
   const t = useT();
+  usePageTitle("meta.transfers.title", "Transfers");
   const { toast } = useToast();
 
   const refresh = () => {
@@ -601,6 +611,272 @@ function AddPayeeDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// =====================================================================
+// Activity tab — close-the-loop on transfers (1.1)
+// =====================================================================
+//
+// Shows the last 50 transfers for the user. Each row surfaces the
+// current state (pending / posted / reversed / scheduled) and gives
+// the user two close-the-loop actions:
+//   • Cancel a pending transfer (Yellow / Red tier sits in pending_actions)
+//   • Reverse a recently-posted transfer (within 5 minutes of posting)
+//
+// Both actions go through the v3 `transfers.getStatus` / `transfers.cancel`
+// / `transfers.reverse` endpoints and surface Layer 5.5 friendly errors
+// in a toast on failure.
+
+type TransferRow = {
+  id: string;
+  source_account_id: string;
+  payee_id: string | null;
+  amount_fen: number;
+  memo: string;
+  schedule: string | null;
+  status: string;
+  created_at: string;
+  posted_at: string | null;
+};
+
+function ActivityTab() {
+  const t = useT();
+  const { toast } = useToast();
+  const [rows, setRows] = useState<TransferRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reverseOf, setReverseOf] = useState<TransferRow | null>(null);
+  const [reverseReason, setReverseReason] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [statusOf, setStatusOf] = useState<Record<string, {
+    status: string;
+    reversible: boolean;
+    posted_at: string | null;
+  }>>({});
+
+  // Localized status label. The `transfers.status.<lowercase>` keys are
+  // pre-declared in dictionaries.ts; anything we don't translate (e.g. an
+  // unexpected backend status) just shows the raw string.
+  const statusLabel = (s: string) => {
+    const k = `agent.transfers.status.${s.toLowerCase()}` as
+      | "agent.transfers.status.pending"
+      | "agent.transfers.status.posted"
+      | "agent.transfers.status.reversed"
+      | "agent.transfers.status.scheduled"
+      | "agent.transfers.status.awaiting_confirmation"
+      | "agent.transfers.status.awaiting_mfa"
+      | "agent.transfers.status.cancelled";
+    return t(k);
+  };
+
+  const refresh = () => {
+    setLoading(true);
+    transfers
+      .list()
+      .then((r) => setRows((r as TransferRow[]) ?? []))
+      .catch((e: ApiError) => {
+        const fe = friendlyError(e);
+        toast({ variant: "error", title: fe.title, description: fe.body });
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const cancel = async (row: TransferRow) => {
+    setBusy(row.id);
+    try {
+      const r = await transfers.cancel(row.id);
+      toast({ variant: "success", title: t("agent.transfers.status.cancelled"), description: `Transfer ${r.transfer_id} → ${r.status}` });
+      refresh();
+    } catch (e) {
+      const fe = friendlyError(e as ApiError);
+      toast({ variant: "error", title: fe.title, description: fe.body });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const startReverse = async (row: TransferRow) => {
+    setBusy(row.id);
+    try {
+      const s = await transfers.getStatus(row.id);
+      setStatusOf((m) => ({ ...m, [row.id]: { status: s.status, reversible: s.reversible, posted_at: s.posted_at } }));
+      if (!s.reversible) {
+        toast({ variant: "warning", title: t("agent.transfers.reverse.expired"), description: t("agent.transfers.reverse.expired_note") });
+        return;
+      }
+      setReverseOf(row);
+    } catch (e) {
+      const fe = friendlyError(e as ApiError);
+      toast({ variant: "error", title: fe.title, description: fe.body });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const confirmReverse = async () => {
+    if (!reverseOf) return;
+    setBusy(reverseOf.id);
+    try {
+      const r = await transfers.reverse(reverseOf.id, reverseReason);
+      toast({
+        variant: "success",
+        title: t("agent.transfers.reverse.confirmed"),
+        description: `${t("agent.transfers.reverse.demo_code")} ${r.mock_mfa_code} — ${r.next_step}`,
+      });
+      setReverseOf(null);
+      setReverseReason("");
+      refresh();
+    } catch (e) {
+      const fe = friendlyError(e as ApiError);
+      toast({ variant: "error", title: fe.title, description: fe.body });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <FadeIn>
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <ActivityIcon className="size-4 text-primary" />
+                  {t("agent.transfers.activity.title")}
+                </CardTitle>
+                <CardDescription>
+                  {t("agent.transfers.activity.subtitle")}
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
+                {loading ? <Loader2 className="size-4 animate-spin" /> : <Undo2 className="size-4" />}
+                {t("agent.transfers.activity.refresh")}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                {t("agent.transfers.activity.loading")}
+              </div>
+            ) : rows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t("agent.transfers.activity.empty")}
+              </p>
+            ) : (
+              <ul className="divide-y divide-white/5">
+                {rows.map((r) => {
+                  const sKey = `agent.transfers.status.${r.status.toLowerCase()}`;
+                  const isPending = r.status === "pending" || r.status === "awaiting_confirmation" || r.status === "awaiting_mfa" || r.status === "scheduled";
+                  const isPosted = r.status === "posted";
+                  return (
+                    <li key={r.id} className="flex flex-wrap items-center gap-3 py-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium tabular-nums">{fenToCny(Math.abs(r.amount_fen))}</span>
+                          <Badge variant={isPosted ? "muted" : isPending ? "yellow" : r.status === "reversed" ? "muted" : "default"}>
+                            {statusLabel(r.status)}
+                          </Badge>
+                          {r.schedule && (
+                            <span className="text-xs text-muted-foreground">
+                              {t("agent.transfers.activity.scheduled_for")} {formatDateTime(r.schedule)}
+                            </span>
+                          )}
+                        </div>
+                        {r.memo && (
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {r.memo}
+                          </p>
+                        )}
+                        <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {relativeTime(r.created_at)} · {r.id}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {isPending && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy === r.id}
+                            onClick={() => cancel(r)}
+                          >
+                            {busy === r.id ? <Loader2 className="size-4 animate-spin" /> : <X className="size-4" />}
+                            {t("agent.transfers.cancel")}
+                          </Button>
+                        )}
+                        {isPosted && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy === r.id}
+                            onClick={() => startReverse(r)}
+                          >
+                            {busy === r.id ? <Loader2 className="size-4 animate-spin" /> : <Undo2 className="size-4" />}
+                            {t("agent.transfers.reverse")}
+                          </Button>
+                        )}
+                        {statusOf[r.id] && (
+                          <Badge variant={statusOf[r.id].reversible ? "muted" : "yellow"}>
+                            {statusOf[r.id].reversible
+                              ? t("agent.transfers.activity.reversible")
+                              : t("agent.transfers.activity.locked")}
+                          </Badge>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </FadeIn>
+
+      {/* Reverse dialog */}
+      <Dialog open={!!reverseOf} onOpenChange={(o) => { if (!o) { setReverseOf(null); setReverseReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Undo2 className="size-4 text-primary" />
+              {t("agent.transfers.reverse")}
+            </DialogTitle>
+            <DialogDescription>
+              {reverseOf && (
+                <>
+                  {fenToCny(Math.abs(reverseOf.amount_fen))} · {reverseOf.memo || t("agent.transfers.activity.no_memo")}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label htmlFor="reverse-reason">{t("agent.transfers.reverse.reason")}</Label>
+            <Textarea
+              id="reverse-reason"
+              value={reverseReason}
+              onChange={(e) => setReverseReason(e.target.value)}
+              placeholder={t("agent.transfers.reverse.reason_ph")}
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("agent.transfers.reverse.next")}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => { setReverseOf(null); setReverseReason(""); }} disabled={busy !== null}>
+                {t("form.cancel")}
+              </Button>
+              <Button onClick={confirmReverse} disabled={busy !== null || !reverseReason.trim()}>
+                {busy ? <Loader2 className="size-4 animate-spin" /> : <Undo2 className="size-4" />}
+                {t("agent.transfers.reverse.confirm")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
